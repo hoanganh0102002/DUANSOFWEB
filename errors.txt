@@ -1,0 +1,32 @@
+app/(auth)/forgot-password/page.tsx(6,23): error TS2307: Cannot find module '@/components/ui/input' or its corresponding type declarations.
+app/(auth)/forgot-password/page.tsx(7,23): error TS2307: Cannot find module '@/components/ui/label' or its corresponding type declarations.
+app/(auth)/forgot-password/page.tsx(150,52): error TS7006: Parameter 'e' implicitly has an 'any' type.
+app/(auth)/forgot-password/page.tsx(160,33): error TS2322: Type '"hero"' is not assignable to type '"default" | "outline" | "ghost" | undefined'.
+app/(auth)/forgot-password/page.tsx(216,52): error TS7006: Parameter 'e' implicitly has an 'any' type.
+app/(auth)/forgot-password/page.tsx(217,53): error TS7006: Parameter 'e' implicitly has an 'any' type.
+app/(auth)/forgot-password/page.tsx(245,33): error TS2322: Type '"hero"' is not assignable to type '"default" | "outline" | "ghost" | undefined'.
+app/(auth)/forgot-password/page.tsx(302,52): error TS7006: Parameter 'e' implicitly has an 'any' type.
+app/(auth)/forgot-password/page.tsx(345,52): error TS7006: Parameter 'e' implicitly has an 'any' type.
+app/(auth)/forgot-password/page.tsx(387,33): error TS2322: Type '"hero"' is not assignable to type '"default" | "outline" | "ghost" | undefined'.
+app/(auth)/forgot-password/page.tsx(426,33): error TS2322: Type '"hero"' is not assignable to type '"default" | "outline" | "ghost" | undefined'.
+app/(auth)/login/page.tsx(7,23): error TS2307: Cannot find module '@/components/ui/input' or its corresponding type declarations.
+app/(auth)/login/page.tsx(8,23): error TS2307: Cannot find module '@/components/ui/label' or its corresponding type declarations.
+app/(auth)/login/page.tsx(9,26): error TS2307: Cannot find module '@/components/ui/checkbox' or its corresponding type declarations.
+app/(auth)/login/page.tsx(11,29): error TS2307: Cannot find module '@/services/authService' or its corresponding type declarations.
+app/(auth)/login/page.tsx(13,35): error TS2307: Cannot find module '@/lib/googleAuth' or its corresponding type declarations.
+app/(auth)/login/page.tsx(14,38): error TS2307: Cannot find module '@/lib/facebookAuth' or its corresponding type declarations.
+app/(auth)/login/page.tsx(21,5): error TS2724: '"lucide-react"' has no exported member named 'Chrome'. Did you mean 'Home'?
+app/(auth)/login/page.tsx(22,5): error TS2305: Module '"lucide-react"' has no exported member 'Facebook'.
+app/(auth)/login/page.tsx(59,20): error TS2554: Expected 1 arguments, but got 2.
+app/(auth)/login/page.tsx(96,21): error TS2554: Expected 1 arguments, but got 2.
+app/(auth)/login/page.tsx(128,21): error TS2554: Expected 1 arguments, but got 2.
+app/(auth)/login/page.tsx(373,33): error TS2322: Type '"hero"' is not assignable to type '"default" | "outline" | "ghost" | undefined'.
+app/(auth)/register/page.tsx(7,23): error TS2307: Cannot find module '@/components/ui/input' or its corresponding type declarations.
+app/(auth)/register/page.tsx(8,23): error TS2307: Cannot find module '@/components/ui/label' or its corresponding type declarations.
+app/(auth)/register/page.tsx(9,26): error TS2307: Cannot find module '@/components/ui/checkbox' or its corresponding type declarations.
+app/(auth)/register/page.tsx(11,29): error TS2307: Cannot find module '@/services/authService' or its corresponding type declarations.
+app/(auth)/register/page.tsx(13,35): error TS2307: Cannot find module '@/lib/googleAuth' or its corresponding type declarations.
+app/(auth)/register/page.tsx(14,38): error TS2307: Cannot find module '@/lib/facebookAuth' or its corresponding type declarations.
+app/(auth)/register/page.tsx(20,5): error TS2724: '"lucide-react"' has no exported member named 'Chrome'. Did you mean 'Home'?
+app/(auth)/register/page.tsx(21,5): error TS2305: Module '"lucide-react"' has no exported member 'Facebook'.
+app/news/page.tsx(3,26): error TS2307: Cannot find module '@tanstack/react-query' or its corresponding type declarations.
