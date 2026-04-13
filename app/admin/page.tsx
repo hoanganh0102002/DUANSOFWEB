@@ -259,7 +259,7 @@ export default function AdminDashboard() {
     total: contacts.length,
     pending: contacts.filter(c => c.status === "pending").length,
     contacted: contacts.filter(c => c.status === "contacted").length,
-    completed: contacts.filter(c => c.status === "completed").length,
+    completed: contacts.filter(c =>    c.status === "completed").length,
   };
 
   const parseServices = (json: string): string[] => {
