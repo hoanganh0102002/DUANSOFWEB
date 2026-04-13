@@ -47,11 +47,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem("sof_user");
   };
 
-  // TỰ ĐỘNG KIỂM TRA TRẠNG THÁI TÀI KHOẢN (KICK-OUT LOGIC)
+  // TỰ ĐỘNG KIỂM TRA TRẠNG THÁI TÀI KHOẢN (KICK-OUT LOGIC) - ĐÃ TỐI ƯU CACHING
   useEffect(() => {
     if (user?.email && !isLoading) {
       const checkAccountStatus = async () => {
         try {
+          // KIỂM TRA CACHING ĐỂ TĂNG TỐC: Chỉ check thực sự 5 phút một lần
+          const lastCheck = sessionStorage.getItem("last_auth_check");
+          const now = Date.now();
+          if (lastCheck && now - parseInt(lastCheck) < 5 * 60 * 1000) {
+            return; // Chưa quá 5 phút, bỏ qua không gọi API để web mượt hơn
+          }
+
           const res = await fetch("/api/admin/users/sync", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -64,13 +71,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
           const data = await res.json();
           
-          // Nếu API trả về thất bại (do đã bị xóa/khóa)
           if (!data.success) {
-            console.warn("[Auth] Account is locked or deleted. Kicking out...");
             logout();
-            // Hiển thị thông báo cho người dùng
-            alert(data.message || "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.");
-            window.location.href = "/"; // Đẩy về trang chủ
+            alert(data.message || "Tài khoản của bạn đã bị khóa.");
+            window.location.href = "/login";
+          } else {
+            // Lưu lại thời điểm check thành công
+            sessionStorage.setItem("last_auth_check", now.toString());
           }
         } catch (e) {
           console.error("[Auth] Failed to check status", e);

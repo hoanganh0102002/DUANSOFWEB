@@ -230,11 +230,11 @@ export default function Header() {
           {user ? (
             <div className="flex items-center gap-3">
               <div className="hidden lg:flex flex-col items-end">
-                <span className="text-[14px] font-bold text-[#0f426c]">{user.name || user.username}</span>
+                <Link href="/profile" className="text-[14px] font-bold text-[#0f426c] hover:text-[#3087fe] transition-colors">{user.name || user.username}</Link>
               </div>
-              <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#3087fe]">
+              <Link href="/profile" className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#3087fe] hover:bg-blue-600 hover:text-white transition-all shadow-sm">
                 <User className="w-5 h-5" />
-              </div>
+              </Link>
               <button 
                 onClick={() => {
                   logout();

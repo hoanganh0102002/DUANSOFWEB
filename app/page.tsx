@@ -22,7 +22,7 @@ export default function Home() {
 
         <Hero />
         
-        <div className="-mt-12">
+        <div>
            <Stats />
         </div>
 

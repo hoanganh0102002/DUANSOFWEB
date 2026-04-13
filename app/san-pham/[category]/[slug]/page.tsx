@@ -49,51 +49,73 @@ export default function ProductDetailPage() {
   const [hardwareProduct, setHardwareProduct] = useState<any>(null);
 
   useEffect(() => {
-    if (pathname) {
-      const parts = pathname.split("/");
-      // URL: /san-pham/[category]/[slug]
-      const category = parts.length >= 3 ? parts[parts.length - 2] : "";
-      const slug = parts[parts.length - 1];
+    const initPage = async () => {
+      if (pathname) {
+        const parts = pathname.split("/");
+        // URL: /san-pham/[category]/[slug]
+        const category = parts.length >= 3 ? parts[parts.length - 2] : "";
+        const slug = parts[parts.length - 1];
 
-      if (slug) {
-        // === KIỂM TRA PHẦN CỨNG ===
-        if (isHardwareProduct(category, slug)) {
-          const hwProduct = findHardwareProduct(slug);
-          if (hwProduct) {
-            setIsHardware(true);
-            setHardwareProduct(hwProduct);
-            return; // Không chạy logic phần mềm
+        if (slug) {
+          // === KIỂM TRA PHẦN CỨNG (Ưu tiên Database -> Sau đó mới Fallback code) ===
+          if (isHardwareProduct(category, slug)) {
+            const loadHardwareFromDb = async () => {
+                try {
+                    const res = await fetch(`/api/site/products/${slug}`);
+                    const data = await res.json();
+                    if (data.success && data.data) {
+                        setIsHardware(true);
+                        setHardwareProduct(data.data);
+                        return true;
+                    }
+                } catch (e) {
+                    console.error("DB Fetch failed, falling back to static data:", e);
+                }
+                return false;
+            };
+
+            const foundInDb = await loadHardwareFromDb();
+            if (!foundInDb) {
+                const hwProduct = findHardwareProduct(slug);
+                if (hwProduct) {
+                    setIsHardware(true);
+                    setHardwareProduct(hwProduct);
+                }
+            }
+            return;
           }
+
+          // === LOGIC PHẦN MỀM (GIỮ NGUYÊN 100%) ===
+          setIsHardware(false);
+          let fullTitle = "";
+          const s = slug.toLowerCase();
+
+          // Mapping slug to Full Title
+          if (s.includes("cafe")) fullTitle = "Phần mềm Quản lý Cafe";
+          else if (s.includes("kho-pallet")) fullTitle = "Phần mềm quản lý Kho Pallet";
+          else if (s.includes("kho")) fullTitle = "Phần mềm Quản lý Kho";
+          else if (s.includes("ban-hang")) fullTitle = "Phần mềm Quản lý Bán hàng";
+          else if (s.includes("khach-san")) fullTitle = "Phần mềm Quản lý Khách sạn";
+          else if (s.includes("nha-hang")) fullTitle = "Phần mềm Quản lý Nhà hàng";
+          else if (s.includes("giu-xe-mobile")) fullTitle = "Phần mềm Quản lý Giữ xe Mobile";
+          else if (s.includes("bai-xe") || s.includes("giu-xe")) fullTitle = "Hệ thống Quản lý Bãi xe";
+          else if (s.includes("erp")) fullTitle = "Giải pháp ERP Doanh nghiệp";
+          else if (s.includes("nhan-su")) fullTitle = "Phần mềm Quản lý Nhân sự";
+          else if (s.includes("van-tai")) fullTitle = "Phần mềm Quản lý Vận tải";
+          else if (s.includes("quan-an")) fullTitle = "Phần mềm Quản lý Quán ăn";
+          else if (s.includes("bao-hanh")) fullTitle = "Phần mềm Quản lý Bảo hành";
+          else if (s.includes("mat-troi")) fullTitle = "Hệ thống Điện mặt trời";
+          else if (s.includes("tra-thuong")) fullTitle = "Hệ thống Quản lý Trả thưởng";
+          else {
+            fullTitle = decodeURIComponent(slug).replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase());
+          }
+
+          setProductName(fullTitle);
         }
-
-        // === LOGIC PHẦN MỀM (GIỮ NGUYÊN 100%) ===
-        setIsHardware(false);
-        let fullTitle = "";
-        const s = slug.toLowerCase();
-
-        // Mapping slug to Full Title
-        if (s.includes("cafe")) fullTitle = "Phần mềm Quản lý Cafe";
-        else if (s.includes("kho-pallet")) fullTitle = "Phần mềm quản lý Kho Pallet";
-        else if (s.includes("kho")) fullTitle = "Phần mềm Quản lý Kho";
-        else if (s.includes("ban-hang")) fullTitle = "Phần mềm Quản lý Bán hàng";
-        else if (s.includes("khach-san")) fullTitle = "Phần mềm Quản lý Khách sạn";
-        else if (s.includes("nha-hang")) fullTitle = "Phần mềm Quản lý Nhà hàng";
-        else if (s.includes("giu-xe-mobile")) fullTitle = "Phần mềm Quản lý Giữ xe Mobile";
-        else if (s.includes("bai-xe") || s.includes("giu-xe")) fullTitle = "Hệ thống Quản lý Bãi xe";
-        else if (s.includes("erp")) fullTitle = "Giải pháp ERP Doanh nghiệp";
-        else if (s.includes("nhan-su")) fullTitle = "Phần mềm Quản lý Nhân sự";
-        else if (s.includes("van-tai")) fullTitle = "Phần mềm Quản lý Vận tải";
-        else if (s.includes("quan-an")) fullTitle = "Phần mềm Quản lý Quán ăn";
-        else if (s.includes("bao-hanh")) fullTitle = "Phần mềm Quản lý Bảo hành";
-        else if (s.includes("mat-troi")) fullTitle = "Hệ thống Điện mặt trời";
-        else if (s.includes("tra-thuong")) fullTitle = "Hệ thống Quản lý Trả thưởng";
-        else {
-          fullTitle = decodeURIComponent(slug).replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase());
-        }
-
-        setProductName(fullTitle);
       }
-    }
+    };
+
+    initPage();
   }, [pathname]);
 
   const faqs = [

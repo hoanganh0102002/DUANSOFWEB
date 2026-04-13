@@ -19,33 +19,34 @@ export const authService = {
   },
   loginWithGoogle: async (userInfo: any): Promise<any> => {
     try {
-      // 1. Sync với database local để Admin quản lý được
-      console.log("🔄 Syncing user to local DB...", userInfo.email);
-      const syncRes = await fetch("/api/admin/users/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      // 1. Chạy SONG SONG các tác vụ để tăng tốc độ tối đa
+      const [syncRes, apiRes] = await Promise.all([
+        fetch("/api/admin/users/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: userInfo.email,
+            name: userInfo.name,
+            avatar: userInfo.picture,
+            provider: "google",
+            provider_id: userInfo.sub
+          })
+        }),
+        // Vẫn gọi backend cũ nếu cần (nhưng chạy song song luôn)
+        apiRequest("users", "google_login", {
           email: userInfo.email,
           name: userInfo.name,
-          avatar: userInfo.picture,
-          provider: "google",
-          provider_id: userInfo.sub
-        })
-      });
-      const syncData = await syncRes.json();
-      console.log("🔄 Sync result:", syncData);
+          picture: userInfo.picture,
+          google_id: userInfo.sub
+        }).catch(e => console.warn("Legacy backend login failed, continuing anyway...", e))
+      ]);
 
+      const syncData = await syncRes.json();
+      
+      // Nếu sync chặn tài khoản (bị khóa) thì mới dừng lại
       if (!syncData.success) {
         return { success: false, message: syncData.message || "Tài khoản của bạn tạm thời không khả dụng." };
       }
-
-      // 2. Vẫn gọi backend cũ nếu cần (giữ tính tương thích)
-      const res = await apiRequest("users", "google_login", {
-        email: userInfo.email,
-        name: userInfo.name,
-        picture: userInfo.picture,
-        google_id: userInfo.sub
-      });
 
       return { 
         success: true, 

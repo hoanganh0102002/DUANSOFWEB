@@ -17,10 +17,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <AuthProvider>
         <CartProvider>
           <AffiliateProvider>
-            <GoogleOAuthProvider clientId={googleClientId}>
-              {children}
-              <Toaster position="top-right" richColors />
-            </GoogleOAuthProvider>
+            {children}
+            <Toaster position="top-right" richColors />
           </AffiliateProvider>
         </CartProvider>
       </AuthProvider>

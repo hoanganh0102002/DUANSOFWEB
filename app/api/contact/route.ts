@@ -361,15 +361,28 @@ export async function POST(request: Request) {
             const secondTransporter = createTransporter();
             
             await secondTransporter.sendMail({
-              from: `"SOF Solutions" <${process.env.SMTP_USER}>`,
+              from: `"Chuyên Gia Giải Pháp SOF" <${process.env.SMTP_USER}>`,
               to: sanitizedEmail,
               subject: solution.subject,
               html: `
-                <div style="font-family: sans-serif; padding: 40px; border: 1px solid #e2e8f0; border-radius: 20px; max-width: 600px; margin: 20px auto; color: #0f172a;">
-                   <h2 style="color: #3b82f6;">${solution.subject}</h2>
-                   <p style="white-space: pre-line; line-height: 1.6;">${solution.content}</p>
-                   <hr style="margin: 30px 0; border: none; border-top: 1px solid #f1f5f9;">
-                   <p style="font-size: 12px; color: #94a3b8;">Đây là email tư vấn kỹ thuật tự động từ SOF.</p>
+                <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 650px; margin: 20px auto; border: 1px solid #e2e8f0; border-radius: 24px; overflow: hidden; background: #ffffff; box-shadow: 0 10px 40px rgba(0,0,0,0.05);">
+                  <div style="background: linear-gradient(135deg, #0f426c 0%, #1e3a8a 100%); padding: 50px 40px; text-align: center;">
+                    <p style="color: #60a5fa; text-transform: uppercase; font-weight: 900; letter-spacing: 3px; font-size: 11px; margin-bottom: 15px;">HỒ SƠ GIẢI PHÁP CHI TIẾT</p>
+                    <h1 style="color: white; margin: 0; font-size: 26px; line-height: 1.3; font-weight: 800;">${solution.subject.replace('[HỒ SƠ GIẢI PHÁP] ', '')}</h1>
+                  </div>
+                  <div style="padding: 45px; line-height: 1.8; color: #1e293b;">
+                    <p style="font-size: 16px; font-weight: 500; color: #0f426c;">Kính gửi Quý đối tác,</p>
+                    <div style="white-space: pre-line; margin-bottom: 30px;">${solution.content}</div>
+                    
+                    <div style="margin-top: 40px; padding: 30px; background: #f8fafc; border-radius: 20px; text-align: center; border: 1px dashed #cbd5e1;">
+                       <p style="margin-bottom: 15px; font-weight: 700; color: #0f426c; font-size: 14px; text-transform: uppercase;">Mọi thắc mắc và yêu cầu Demo trực tiếp, vui lòng gọi:</p>
+                       <a href="tel:0932518569" style="display: inline-block; color: #3087fe; font-weight: 900; font-size: 28px; text-decoration: none;">0932 518 569</a>
+                       <p style="margin-top: 15px; color: #64748b; font-size: 13px; font-style: italic;">Đội ngũ Chuyên gia SOF luôn sẵn sàng đồng hành cùng sự phát triển của bạn!</p>
+                    </div>
+                  </div>
+                  <div style="background: #f1f5f9; padding: 25px; text-align: center;">
+                    <p style="margin: 0; font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px;">© 2025 SOF SOLUTION OF FUTURE - TIÊN PHONG CÔNG NGHỆ</p>
+                  </div>
                 </div>
               `
             });

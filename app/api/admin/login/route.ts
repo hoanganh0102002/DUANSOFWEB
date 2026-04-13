@@ -16,15 +16,14 @@ export async function POST(request: Request) {
     }
 
     if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-      // Generate a simple admin token (in production, use JWT)
-      const adminToken = Buffer.from(`${ADMIN_EMAIL}:${Date.now()}`).toString("base64");
+      // Tối ưu tạo token cực nhanh
+      const adminToken = `at_${Math.random().toString(36).substring(2)}${Date.now()}`;
 
       return NextResponse.json({
         success: true,
-        message: "Đăng nhập Admin thành công!",
         data: {
           username: "admin",
-          name: "SOF Administrator",
+          name: "Administrator",
           email: ADMIN_EMAIL,
           role: "admin",
           token: adminToken,

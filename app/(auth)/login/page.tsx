@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useGoogleLogin } from '@react-oauth/google';
+import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
 import { 
     Eye, 
     EyeOff, 
@@ -24,6 +24,16 @@ import { authService } from "@/services/authService";
 import { useAuth } from "@/components/providers/AuthProvider";
 
 export default function LoginPage() {
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID";
+
+  return (
+    <GoogleOAuthProvider clientId={googleClientId}>
+      <LoginContent />
+    </GoogleOAuthProvider>
+  );
+}
+
+function LoginContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { login } = useAuth();
@@ -37,6 +47,11 @@ export default function LoginPage() {
         rememberMe: false
     });
 
+    // Tải trước trang Admin để chuyển hướng trong tích tắc
+    useEffect(() => {
+        router.prefetch("/admin");
+    }, [router]);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
@@ -45,25 +60,24 @@ export default function LoginPage() {
             const response: any = await authService.login(formData.email, formData.password);
 
             if (response.success) {
-                toast.success("Đăng nhập thành công!");
-                
                 const userData = {
                     username: response.data?.username || 'admin',
                     name: response.data?.name || 'Administrator',
                     email: response.data?.email || formData.email,
                 };
 
-                login(userData);
-
-                // Kiểm tra nếu là email Admin thì lưu vào localStorage và chuyển hướng
+                // Chuyển hướng SIÊU TỐC: Đẩy đi ngay lập tức
                 if (userData.email === "admin@sof.com.vn" || userData.email === "admin@sof.vn" || userData.email === "trannguyenhoanganh2005@gmail.com") {
                     localStorage.setItem("sof_admin", JSON.stringify({
                         ...userData,
                         role: "admin",
                         token: "admin_sync_token_" + Date.now()
                     }));
+                    // Set user state và đẩy đi luôn
+                    login(userData);
                     router.push("/admin");
                 } else {
+                    login(userData);
                     router.push(redirectUrl);
                 }
             } else {

@@ -60,9 +60,16 @@ export default function AdminDashboard() {
   const [selectedContact, setSelectedContact] = useState<ContactRequest | null>(null);
   const [isUpdating, setIsUpdating] = useState<number | null>(null);
   
-
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: number; type: 'contact' | 'user' } | null>(null);
   const [isDeleting, setIsDeleting] = useState<number | null>(null);
+
+  // Caching flags để tránh tải lại dữ liệu đã có
+  const [hasLoaded, setHasLoaded] = useState({
+    contacts: false,
+    users: false,
+    stats: false,
+    trash: false
+  });
 
   // Auth check
   useEffect(() => {
@@ -79,59 +86,84 @@ export default function AdminDashboard() {
     }
   }, [router]);
 
-  // Load data
-  const loadContacts = useCallback(async () => {
+  // Load data - Chỉ tải khi thực sự cần thiết
+  const loadContacts = useCallback(async (force = false) => {
+    if (hasLoaded.contacts && !force) return;
     try {
       const res = await fetch("/api/admin/contacts");
       const data = await res.json();
-      if (data.success) setContacts(data.data || []);
-    } catch (e) {
-      console.error("Failed to load contacts:", e);
-    }
-  }, []);
+      if (data.success) {
+        setContacts(data.data || []);
+        setHasLoaded(prev => ({ ...prev, contacts: true }));
+      }
+    } catch (e) { console.error(e); }
+  }, [hasLoaded.contacts]);
 
-  const loadUsers = useCallback(async () => {
+  const loadUsers = useCallback(async (force = false) => {
+    if (hasLoaded.users && !force) return;
     try {
       const res = await fetch("/api/admin/users");
       const data = await res.json();
-      if (data.success) setUsers(data.data || []);
-    } catch (e) {
-      console.error("Failed to load users:", e);
-    }
-  }, []);
+      if (data.success) {
+        setUsers(data.data || []);
+        setHasLoaded(prev => ({ ...prev, users: true }));
+      }
+    } catch (e) { console.error(e); }
+  }, [hasLoaded.users]);
 
-  const loadStats = useCallback(async () => {
+  const loadStats = useCallback(async (force = false) => {
+    if (hasLoaded.stats && !force) return;
     try {
       const res = await fetch("/api/admin/stats");
       const data = await res.json();
-      if (data.success) setStatsData(data.data);
-    } catch (e) {
-      console.error("Failed to load stats:", e);
-    }
-  }, []);
+      if (data.success) {
+        setStatsData(data.data);
+        setHasLoaded(prev => ({ ...prev, stats: true }));
+      }
+    } catch (e) { console.error(e); }
+  }, [hasLoaded.stats]);
 
-  const loadTrash = useCallback(async () => {
+  const loadTrash = useCallback(async (force = false) => {
+    if (hasLoaded.trash && !force) return;
     try {
       const res = await fetch("/api/admin/trash");
       const data = await res.json();
-      if (data.success) setTrashData(data.data);
-    } catch (e) {
-      console.error("Failed to load trash:", e);
-    }
-  }, []);
+      if (data.success) {
+        setTrashData(data.data);
+        setHasLoaded(prev => ({ ...prev, trash: true }));
+      }
+    } catch (e) { console.error(e); }
+  }, [hasLoaded.trash]);
 
+  // Logic tải dữ liệu thông minh theo Tab
   useEffect(() => {
     if (!admin) return;
-    setIsLoading(true);
-    const promises = [loadContacts(), loadUsers(), loadStats()];
-    if (activeTab === "trash") promises.push(loadTrash());
-    Promise.all(promises).finally(() => setIsLoading(false));
-  }, [admin, activeTab, loadContacts, loadUsers, loadStats, loadTrash]);
+    
+    const fetchData = async () => {
+      // Luôn ưu tiên tải stats cho overview trước
+      if (activeTab === "overview") {
+        setIsLoading(!hasLoaded.stats);
+        await loadStats();
+      } else if (activeTab === "contacts") {
+        setIsLoading(!hasLoaded.contacts);
+        await loadContacts();
+      } else if (activeTab === "users") {
+        setIsLoading(!hasLoaded.users);
+        await loadUsers();
+      } else if (activeTab === "trash") {
+        setIsLoading(!hasLoaded.trash);
+        await loadTrash();
+      }
+      setIsLoading(false);
+    };
+
+    fetchData();
+  }, [admin, activeTab, loadContacts, loadUsers, loadStats, loadTrash, hasLoaded.stats, hasLoaded.contacts, hasLoaded.users, hasLoaded.trash]);
 
   // Actions
   const handleLogout = () => {
     localStorage.removeItem("sof_admin");
-    router.push("/admin/login");
+    router.push("/login");
   };
 
   const handleStatusUpdate = async (id: number, newStatus: string) => {
@@ -524,35 +556,40 @@ export default function AdminDashboard() {
                         <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                            <AreaChart data={statsData?.traffic?.timeline}>
                               <defs>
-                                 <linearGradient id="colorVisits" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.6}/>
-                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                               <linearGradient id="colorVisits" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
                                  </linearGradient>
                                  <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#00f2ff" stopOpacity={0.4}/>
-                                    <stop offset="95%" stopColor="#00f2ff" stopOpacity={0}/>
+                                    <stop offset="5%" stopColor="#00f2ff" stopOpacity={0.6}/>
+                                    <stop offset="95%" stopColor="#00f2ff" stopOpacity={0.05}/>
                                  </linearGradient>
                               </defs>
-                              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
+                              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" vertical={false} />
                               <XAxis 
                                  dataKey="name" 
                                  axisLine={false} 
                                  tickLine={false} 
-                                 tick={{fill: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 'bold'}} 
+                                 tick={{fill: 'rgba(255,255,255,0.9)', fontSize: 11, fontWeight: 'bold'}} 
                                  dy={10}
                               />
-                              <YAxis hide={true} domain={['auto', 'auto']} />
+                              <YAxis 
+                                 axisLine={false} 
+                                 tickLine={false} 
+                                 tick={{fill: 'rgba(255,255,255,0.4)', fontSize: 10}} 
+                                 width={30}
+                              />
                               <Tooltip 
                                  contentStyle={{
-                                    backgroundColor: 'rgba(15, 23, 41, 0.9)', 
-                                    border: '1px solid rgba(59, 130, 246, 0.3)', 
+                                    backgroundColor: 'rgba(23, 32, 53, 0.95)', 
+                                    border: '1px solid rgba(59, 130, 246, 0.5)', 
                                     borderRadius: '16px', 
                                     backdropFilter: 'blur(10px)',
-                                    boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+                                    boxShadow: '0 20px 40px rgba(0,0,0,0.6)',
                                     color: '#fff'
                                  }}
                                  itemStyle={{fontSize: '12px', fontWeight: 'bold', padding: '2px 0'}}
-                                 cursor={{stroke: 'rgba(59, 130, 246, 0.2)', strokeWidth: 2}}
+                                 cursor={{stroke: 'rgba(59, 130, 246, 0.4)', strokeWidth: 2}}
                               />
                               <Area 
                                  type="monotone" 
@@ -561,7 +598,7 @@ export default function AdminDashboard() {
                                  strokeWidth={4} 
                                  fillOpacity={1} 
                                  fill="url(#colorVisits)" 
-                                 activeDot={{ r: 6, stroke: '#fff', strokeWidth: 2, fill: '#3b82f6' }}
+                                 activeDot={{ r: 8, stroke: '#fff', strokeWidth: 2, fill: '#3b82f6' }}
                               />
                               <Area 
                                  type="monotone" 
@@ -570,7 +607,7 @@ export default function AdminDashboard() {
                                  strokeWidth={4} 
                                  fillOpacity={1} 
                                  fill="url(#colorUsers)" 
-                                 activeDot={{ r: 6, stroke: '#fff', strokeWidth: 2, fill: '#00f2ff' }}
+                                 activeDot={{ r: 8, stroke: '#fff', strokeWidth: 2, fill: '#00f2ff' }}
                               />
                            </AreaChart>
                         </ResponsiveContainer>
