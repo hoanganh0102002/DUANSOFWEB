@@ -1,7 +1,12 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import ChatAssistant from "./ChatAssistant";
+import dynamic from 'next/dynamic';
+
+const ChatAssistant = dynamic(() => import("./ChatAssistant"), { 
+  ssr: false,
+  loading: () => null 
+});
 
 export default function ChatAssistantWrapper() {
   const pathname = usePathname();

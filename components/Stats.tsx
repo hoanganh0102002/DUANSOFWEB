@@ -38,7 +38,7 @@ export default async function Stats() {
             <div className="text-[40px] font-extrabold text-[#1e619d] mb-2 leading-none">
               {item.value || '0'}
             </div>
-            <div className="text-[11px] text-gray-500 uppercase tracking-widest font-bold">
+            <div className="text-[11px] text-gray-500 tracking-widest font-bold">
               {item.label}
             </div>
           </div>

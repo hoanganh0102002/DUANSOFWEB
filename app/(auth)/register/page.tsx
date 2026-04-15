@@ -57,12 +57,12 @@ export default function RegisterPage() {
             const response = await authService.register(payload);
 
             if (response.success) {
-                toast.success("Đăng ký thành công! Mật khẩu đã được gửi qua SMS đến số điện thoại của bạn.");
+                toast.success("Đăng ký thành công! Mật khẩu đã được gửi qua Email của bạn.");
                 
-                // Redirect to login page
-                router.push("/login");
+                // Redirect to login page after 3 seconds
+                setTimeout(() => router.push("/login"), 3000);
             } else {
-                toast.error((response as any).message || "Đăng ký thất bại");
+                toast.error(response.message || "Đăng ký thất bại");
             }
         } catch (error) {
             console.error(error);
@@ -336,7 +336,7 @@ export default function RegisterPage() {
                                 </svg>
                             </div>
                             <p className="text-[11px] text-[#507588] leading-tight font-medium">
-                                Hệ thống sẽ tạo mật khẩu và <strong className="text-[#0f426c]">gửi qua SMS</strong> đến số điện thoại trên.
+                                Hệ thống sẽ tạo mật khẩu và <strong className="text-[#0f426c]">gửi qua Email</strong> đã điền ở trên.
                             </p>
                         </div>
 

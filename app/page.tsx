@@ -9,11 +9,14 @@ import { EcosystemSection } from '../components/EcosystemSection';
 import { IntegrationsSection } from '../components/IntegrationsSection';
 import { FAQSection } from '../components/FAQSection';
 import { Footer } from '../components/FooterNextjs';
+import { ProcessSection } from '../components/ProcessSection';
 
+import { AdminRedirect } from '../components/AdminRedirect';
 
 export default function Home() {
   return (
     <div className="min-h-screen font-sans overflow-clip relative" style={{ background: '#f8fbff' }}>
+      <AdminRedirect />
       {/* SVG Background – kéo dài toàn bộ trang */}
       <BackgroundDecor />
 
@@ -32,6 +35,7 @@ export default function Home() {
 
         <LogoCarousel />
         <EcosystemSection />
+        <ProcessSection />
         <IntegrationsSection />
         <FAQSection />
         <Footer />

@@ -70,6 +70,31 @@ export const authService = {
     };
   },
   register: async (data: any): Promise<any> => {
-    return { success: true, message: "Đăng ký thành công" };
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const result = await res.json();
+      return result;
+    } catch (e) {
+      console.error(e);
+      return { success: false, message: "Lỗi kết nối máy chủ" };
+    }
+  },
+  forgotPassword: async (email: string): Promise<any> => {
+    try {
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const result = await res.json();
+      return result;
+    } catch (e) {
+      console.error(e);
+      return { success: false, message: "Lỗi kết nối máy chủ" };
+    }
   }
 };

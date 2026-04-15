@@ -16,6 +16,11 @@ import {
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { toast } from "sonner";
+import { 
+  AnalyticsDashboard, UserActivityLog, CampaignManager, 
+  TicketSystem, SecurityDashboard 
+} from "@/components/admin/AdvancedFeatures";
+import { LiveChatCenter } from "@/components/admin/LiveChatCenter";
 
 // Types
 interface ContactRequest {
@@ -49,7 +54,7 @@ const STATUS_CONFIG = {
 export default function AdminDashboard() {
   const router = useRouter();
   const [admin, setAdmin] = useState<AdminUser | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "contacts" | "users" | "trash">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "contacts" | "users" | "trash" | "analytics" | "user_logs" | "campaigns" | "tickets" | "security" | "live_chat">("overview");
   const [contacts, setContacts] = useState<ContactRequest[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [trashData, setTrashData] = useState<{ contacts: any[], users: any[] }>({ contacts: [], users: [] });
@@ -375,17 +380,103 @@ export default function AdminDashboard() {
             <Users className="w-5 h-5" />
             Quản lý Users
           </button>
+
+          {/* CÁC TÍNH NĂNG NÂNG CAO MỚI */}
+          <div className="pt-4 pb-2">
+            <p className="px-4 text-[10px] font-black tracking-widest text-blue-200/20 uppercase">Hệ sinh thái CRM</p>
+          </div>
+          
           <button
-            onClick={() => setActiveTab("trash")}
+            onClick={() => setActiveTab("analytics")}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
-              activeTab === "trash"
-                ? "bg-red-500/10 text-red-400 border border-red-500/20"
-                : "text-blue-200/40 hover:text-red-200/70 hover:bg-white/[0.03]"
+              activeTab === "analytics"
+                ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
+                : "text-blue-200/40 hover:text-blue-200/70 hover:bg-white/[0.03]"
             }`}
           >
-            <Trash2 className="w-5 h-5" />
-            Thùng rác
+            <AlertCircle className="w-5 h-5" />
+            Phân tích Insight
           </button>
+          
+          <button
+            onClick={() => setActiveTab("user_logs")}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
+              activeTab === "user_logs"
+                ? "bg-purple-500/10 text-purple-400 border border-purple-500/20"
+                : "text-blue-200/40 hover:text-blue-200/70 hover:bg-white/[0.03]"
+            }`}
+          >
+            <FileText className="w-5 h-5" />
+            Dấu chân số User
+          </button>
+          
+          <button
+            onClick={() => setActiveTab("campaigns")}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
+              activeTab === "campaigns"
+                ? "bg-pink-500/10 text-pink-400 border border-pink-500/20"
+                : "text-blue-200/40 hover:text-blue-200/70 hover:bg-white/[0.03]"
+            }`}
+          >
+            <Mail className="w-5 h-5" />
+            Chiến dịch Email
+          </button>
+          
+          <button
+            onClick={() => setActiveTab("tickets")}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
+              activeTab === "tickets"
+                ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                : "text-blue-200/40 hover:text-blue-200/70 hover:bg-white/[0.03]"
+            }`}
+          >
+            <HelpCircle className="w-5 h-5" />
+            Support Ticket
+          </button>
+          
+          <button
+            onClick={() => setActiveTab("security")}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
+              activeTab === "security"
+                ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                : "text-blue-200/40 hover:text-blue-200/70 hover:bg-white/[0.03]"
+            }`}
+          >
+            <ShieldCheck className="w-5 h-5" />
+            An ninh hệ thống
+          </button>
+
+          <div className="pt-2">
+            <button
+              onClick={() => setActiveTab("trash")}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
+                activeTab === "trash"
+                  ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                  : "text-blue-200/40 hover:text-red-200/70 hover:bg-white/[0.03]"
+              }`}
+            >
+              <Trash2 className="w-5 h-5" />
+              Thùng rác
+            </button>
+
+            <div className="pt-4 mt-4 border-t border-white/[0.06]">
+              <p className="px-4 text-[10px] font-black text-blue-200/20 uppercase tracking-[0.2em] mb-4">CSKH & Tư vấn</p>
+              <button
+                onClick={() => setActiveTab("live_chat")}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
+                  activeTab === "live_chat"
+                    ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
+                    : "text-blue-200/40 hover:text-white hover:bg-white/[0.03]"
+                }`}
+              >
+                <div className="relative">
+                  <MessageSquare className="w-5 h-5" />
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full border border-[#0c1222] animate-pulse"></span>
+                </div>
+                Tư vấn Trực tuyến
+              </button>
+            </div>
+          </div>
         </nav>
 
         {/* Admin Profile */}
@@ -418,14 +509,24 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-black text-white">
-                {activeTab === "overview" ? "Tổng quan Hệ thống" : activeTab === "contacts" ? "Quản lý Yêu cầu Tư vấn" : "Quản lý Người dùng"}
+                {activeTab === "overview" ? "Tổng quan Hệ thống" : 
+                 activeTab === "contacts" ? "Quản lý Yêu cầu Tư vấn" : 
+                 activeTab === "users" ? "Quản lý Người dùng" :
+                 activeTab === "analytics" ? "Phân tích Insight & Heatmap" :
+                 activeTab === "user_logs" ? "Quản lý Phân khúc & Dấu chân số" :
+                 activeTab === "campaigns" ? "Tự động hóa Marketing" :
+                 activeTab === "tickets" ? "Trung tâm Hỗ trợ Khách hàng" :
+                 activeTab === "live_chat" ? "Tư vấn Trực tuyến Live" : 
+                 activeTab === "security" ? "Trung tâm Cảnh báo An ninh" : "Thùng rác"}
               </h2>
               <p className="text-sm text-blue-200/40 mt-0.5">
                 {activeTab === "overview" 
                   ? "Báo cáo thống kê truy cập và quan tâm sản phẩm"
                   : activeTab === "contacts"
                     ? `${contacts.length} yêu cầu • ${contactStats.pending} chờ xử lý`
-                    : `${users.length} người dùng đã đăng ký`}
+                    : activeTab === "users" ? `${users.length} người dùng đã đăng ký`
+                    : activeTab === "trash" ? "Quản lý các bản ghi đã xóa"
+                    : "Hệ sinh thái Quản trị Cao cấp SOF"}
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -489,7 +590,7 @@ export default function AdminDashboard() {
                       <Users className="w-12 h-12 text-blue-400" />
                     </div>
                     <p className="text-xs font-bold text-blue-200/40 uppercase tracking-widest mb-1">Người dùng</p>
-                    <h3 className="text-4xl font-black text-white">{statsData?.users?.total || 0}</h3>
+                    <h3 className="text-4xl font-black text-white">{statsData?.users?.regular || 0}</h3>
                     <div className="mt-4 flex items-center gap-2">
                        <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">+12%</span>
                        <span className="text-[11px] text-blue-200/30">so với tháng trước</span>
@@ -799,11 +900,10 @@ export default function AdminDashboard() {
                 <div className="flex items-center justify-center py-20">
                   <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
                 </div>
-              ) : users.length === 0 ? (
+              ) : filteredUsers.length === 0 ? (
                 <div className="text-center py-20">
                   <Users className="w-12 h-12 text-blue-300/20 mx-auto mb-4" />
-                  <p className="text-blue-200/40 font-medium text-lg mb-2">Chưa có người dùng nào</p>
-                  <p className="text-blue-200/25 text-sm">Người dùng đăng ký trên website sẽ xuất hiện ở đây</p>
+                  <p className="text-blue-200/40 font-medium">Không tìm thấy người dùng nào</p>
                 </div>
               ) : (
                 <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl overflow-hidden shadow-xl">
@@ -904,6 +1004,15 @@ export default function AdminDashboard() {
               )}
             </>
           )}
+          
+
+          {/* TÍNH NĂNG NÂNG CAO */}
+          {activeTab === "analytics" && <AnalyticsDashboard data={statsData?.analytics} />}
+          {activeTab === "user_logs" && <UserActivityLog />}
+          {activeTab === "campaigns" && <CampaignManager />}
+          {activeTab === "tickets" && <TicketSystem />}
+          {activeTab === "security" && <SecurityDashboard />}
+          {activeTab === "live_chat" && <LiveChatCenter />}
 
           {/* Trash Tab */}
           {activeTab === "trash" && (

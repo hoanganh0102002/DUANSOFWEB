@@ -73,7 +73,7 @@ export const EcosystemSection = () => {
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600">Hệ Sinh Thái SOF</span>
           </div>
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-[#0c3151] tracking-tighter leading-tight">
-             Giải pháp công nghệ <br className="hidden md:block" />
+             Công nghệ 
              <span className="relative inline-block px-1">
                <span className="relative z-10 text-red-500">toàn diện</span>
                <div className="absolute bottom-1 left-0 w-full h-3 bg-red-100/60 rounded-md -rotate-1 z-0 scale-x-105"></div>
@@ -129,7 +129,7 @@ export const EcosystemSection = () => {
                       className="w-full h-full p-4 object-contain transition-transform duration-[2s] group-hover:scale-110"
                     />
                     <div className="absolute top-6 right-6 px-4 py-1.5 rounded-full bg-white/60 backdrop-blur-md border border-white/80 text-[10px] font-black uppercase tracking-widest text-[#0c3151] z-20">
-                      {p.tab}
+                      {p.tab === 'SOFTWARE' ? 'Phần mềm' : p.tab === 'HARDWARE' ? 'Phần cứng' : p.tab}
                     </div>
                   </div>
 

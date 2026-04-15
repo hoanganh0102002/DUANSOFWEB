@@ -3,7 +3,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Bot, Send, X, MessageCircle, User, Loader2, Mic, MicOff, Copy, CheckCircle2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { clsx } from 'clsx';
+import { useAuth } from '@/components/providers/AuthProvider';
+import { useRouter } from 'next/navigation';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -19,6 +22,9 @@ const QUICK_QUESTIONS = [
 ];
 
 export default function ChatAssistant() {
+  const { user } = useAuth();
+  const isAuthenticated = !!user;
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -27,54 +33,100 @@ export default function ChatAssistant() {
   const [isTyping, setIsTyping] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+
+  // New states for Human Mode
+  const [isHumanMode, setIsHumanMode] = useState(false);
+  const [sessionId, setSessionId] = useState<number | null>(null);
+  const [visitorId, setVisitorId] = useState("");
   
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Khởi tạo Speech Recognition
-  const startListening = () => {
-    if (!('webkitSpeechRecognition' in window) && !('speechRecognition' in window)) {
-      alert("Trình duyệt của bạn không hỗ trợ nhận diện giọng nói.");
-      return;
-    }
-
-    const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).speechRecognition;
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'vi-VN';
-    recognition.continuous = false;
-    recognition.interimResults = false;
-
-    recognition.onstart = () => setIsListening(true);
-    recognition.onend = () => setIsListening(false);
-    recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      setInput(transcript);
-    };
-
-    recognition.start();
-  };
-
-  // Load tin nhắn từ localStorage khi khởi chạy
+  // Initialize Visitor ID and History based on Auth State
   useEffect(() => {
-    const savedMessages = localStorage.getItem('sof_chat_history');
+    let vid = "";
+    if (user && user.email) {
+      vid = `u_${user.email}`;
+    } else {
+      vid = localStorage.getItem("sof_chat_visitor_id") || "";
+      if (!vid) {
+        vid = "v_" + Math.random().toString(36).substring(2, 11);
+        localStorage.setItem("sof_chat_visitor_id", vid);
+      }
+    }
+    setVisitorId(vid);
+
+    // Reset messages for the specific visitor
+    const historyKey = `sof_chat_history_${vid}`;
+    const savedMessages = localStorage.getItem(historyKey);
     if (savedMessages) {
       setMessages(JSON.parse(savedMessages));
     } else {
       setMessages([
         { 
           role: 'assistant', 
-          content: 'Dạ, SOF xin nghe ạ! 👋 Tôi là trợ lý AI chuyên về tư vấn chuyển đổi số. Bạn cần tôi tư vấn về sản phẩm nào của SOF hôm nay không?',
+          content: `Dạ, SOF xin nghe ạ! 👋 Chào mừng ${user?.name || "bạn"} quay trở lại. Tôi có thể hỗ trợ gì cho bạn không?`,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ]);
     }
-  }, []);
+    
+    // Reset human mode state when identity changes
+    setIsHumanMode(false);
+    setSessionId(null);
 
-  // Lưu tin nhắn vào localStorage mỗi khi có thay đổi
+  }, [user?.email]); // Re-run when user logs in/out
+
+    // Khởi tạo Speech Recognition
+    const startListening = () => {
+      if (!('webkitSpeechRecognition' in window) && !('speechRecognition' in window)) {
+        toast.error("Trình duyệt của bạn không hỗ trợ nhận diện giọng nói.");
+        return;
+      }
+  
+      const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).speechRecognition;
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'vi-VN';
+      recognition.continuous = false;
+      recognition.interimResults = false;
+  
+      recognition.onstart = () => {
+        setIsListening(true);
+        toast.info("Đang lắng nghe...", { duration: 2000 });
+      };
+      
+      recognition.onend = () => setIsListening(false);
+      
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        if (transcript.trim()) {
+           setInput(transcript);
+           // Auto send after 500ms for better experience
+           setTimeout(() => handleSend(transcript), 400);
+        }
+      };
+  
+      recognition.onerror = (event: any) => {
+        console.error("Speech error", event.error);
+        if (event.error === 'not-allowed') {
+          toast.error("Vui lòng cho phép trình duyệt truy cập Micro để sử dụng tính năng này!");
+        } else {
+          toast.error("Lỗi nhận diện giọng nói: " + event.error);
+        }
+        setIsListening(false);
+      };
+  
+      recognition.start();
+    };
+
+  // Load logic moved to the visitorId useEffect for better sync
+  
+
+  // Lưu tin nhắn vào localStorage mỗi khi có thay đổi (theo visitorId)
   useEffect(() => {
-    if (messages.length > 0) {
-      localStorage.setItem('sof_chat_history', JSON.stringify(messages));
+    if (messages.length > 0 && visitorId) {
+      localStorage.setItem(`sof_chat_history_${visitorId}`, JSON.stringify(messages));
     }
-  }, [messages]);
+  }, [messages, visitorId]);
 
   // Hiển thị tooltip sau 3 giây để mời gọi khách hàng
   useEffect(() => {
@@ -93,6 +145,67 @@ export default function ChatAssistant() {
     }
   }, [messages, isTyping]);
 
+  // Human Mode Polling
+  useEffect(() => {
+    if (!isHumanMode || !sessionId || !isOpen) return;
+
+    const fetchHumanMessages = async () => {
+      try {
+        const res = await fetch(`/api/chat/messages?session_id=${sessionId}`);
+        const data = await res.json();
+        if (data.success) {
+          // Filter out messages that were "cleared" by the user locally
+          const clearedAt = localStorage.getItem(`sof_chat_cleared_at_${visitorId}`) || "0";
+          const clearedTime = new Date(clearedAt).getTime();
+
+          const newMessages = data.data
+            .filter((m: any) => new Date(m.created_at).getTime() > clearedTime)
+            .map((m: any) => ({
+               role: m.sender_type === 'admin' ? 'assistant' : 'user',
+               content: m.message,
+               timestamp: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            }));
+          
+          if (newMessages.length !== messages.length) {
+            setMessages(newMessages);
+          }
+        }
+      } catch (e) { console.error(e); }
+    };
+
+    const itv = setInterval(fetchHumanMessages, 3000);
+    return () => clearInterval(itv);
+  }, [isHumanMode, sessionId, isOpen, messages.length]);
+
+  const switchToHuman = async () => {
+    setIsTyping(true);
+    try {
+      const res = await fetch("/api/chat/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          visitor_id: visitorId,
+          name: user?.name || "Khách vãng lai",
+          email: user?.email || ""
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSessionId(data.data.id);
+        setIsHumanMode(true);
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: 'Dạ, hệ thống đang kết nối bạn với chuyên viên tư vấn của SOF. Vui lòng chờ trong giây lát ạ! 👨‍💼',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }]);
+      }
+    } catch (e) {
+      toast.error("Không thể kết nối với chuyên viên lúc này.");
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
   const handleSend = async (content: string) => {
     if (!content.trim() || isLoading) return;
 
@@ -103,6 +216,25 @@ export default function ChatAssistant() {
     setIsLoading(true);
     setIsTyping(true);
     setShowTooltip(false);
+
+    if (isHumanMode && sessionId) {
+      try {
+        await fetch("/api/chat/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            session_id: sessionId,
+            sender_type: "user",
+            message: content
+          })
+        });
+        // Polling will pick up the message
+      } catch (e) { console.error(e); } finally {
+        setIsLoading(false);
+        setIsTyping(false);
+      }
+      return;
+    }
 
     try {
       const response = await fetch('/api/chat', {
@@ -121,6 +253,11 @@ export default function ChatAssistant() {
       
       if (data.text) {
         setMessages(prev => [...prev, { role: 'assistant', content: data.text, timestamp: aiTime }]);
+        
+        // Suggest switching to human if AI can't help or on specific keywords
+        if (data.text.includes("Chuyên viên") || data.text.includes("liên hệ")) {
+           // logic hinted here
+        }
       } else {
         setMessages(prev => [...prev, { role: 'assistant', content: "Hệ thống đang bận một chút, mời bạn thử lại nhé!", timestamp: aiTime }]);
       }
@@ -198,26 +335,70 @@ export default function ChatAssistant() {
               </div>
               <div>
                 <h3 className="font-black text-sm tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-50 uppercase leading-none">
-                  SOF AI CONSULTANT
+                  {isHumanMode ? "SOF SPECIALIST" : "SOF AI CONSULTANT"}
                 </h3>
                 <span className="block text-[9px] text-blue-100/60 font-bold uppercase tracking-widest mt-1">
-                  AI đang trực tuyến
+                  {isHumanMode ? "Đang kết nối Chuyên viên" : "Trợ lý AI đang sẵn sàng"}
                 </span>
               </div>
             </div>
+
+            {/* Navigation links or modes can go here */}
+            <div className="flex-1"></div>
             
             <div className="flex items-center gap-1.5 relative z-10">
+              {isHumanMode ? (
+                <button 
+                  onClick={() => setIsHumanMode(false)}
+                  className="px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/40 rounded-xl transition-all active:scale-95 text-[10px] font-black text-white border border-blue-400/30 flex items-center gap-1.5 group/bot"
+                >
+                  <Bot className="w-3.5 h-3.5 group-hover/bot:rotate-12 transition-transform" />
+                  BOT AI
+                </button>
+              ) : (
+                <button 
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      toast.error("Vui lòng đăng nhập để sử dụng tính năng tư vấn trực tiếp với Admin!", {
+                        action: { label: "Đăng nhập ngay", onClick: () => router.push("/login") }
+                      });
+                      return;
+                    }
+                    switchToHuman();
+                  }}
+                  className="px-3 py-1.5 hover:bg-white/20 rounded-xl transition-all active:scale-95 text-[10px] font-black text-white/90 border border-white/10 flex items-center gap-1.5 group/admin"
+                >
+                  <User className="w-3.5 h-3.5 group-hover/admin:scale-110 transition-transform" />
+                  ADMIN
+                </button>
+              )}
               <button 
                 onClick={() => {
-                  if(confirm("Xóa lịch sử trò chuyện này?")) {
-                    localStorage.removeItem('sof_chat_history');
-                    setMessages([{ role: 'assistant', content: 'Dạ, SOF đã sẵn sàng hỗ trợ lại từ đầu ạ!', timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+                  if(confirm("Dọn dẹp lịch sử trò chuyện trên máy này? (Lịch sử vẫn được lưu trên hệ thống Admin)")) {
+                    if (isHumanMode && sessionId) {
+                      // Mark as cleared locally only
+                      localStorage.setItem(`sof_chat_cleared_at_${visitorId}`, new Date().toISOString());
+                      setMessages([{ 
+                        role: 'assistant', 
+                        content: 'Dọn dẹp thành công. Admin vẫn có thể xem lại lịch sử trước đó của bạn nếu cần thiết.', 
+                        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+                      }]);
+                      toast.success("Đã dọn dẹp màn hình chat");
+                    } else {
+                      localStorage.removeItem(`sof_chat_history_${visitorId}`);
+                      setMessages([{ 
+                        role: 'assistant', 
+                        content: 'Dạ, SOF đã sẵn sàng hỗ trợ lại từ đầu ạ!', 
+                        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+                      }]);
+                      toast.success("Đã làm mới hội thoại AI");
+                    }
                   }
                 }}
                 className="p-2 hover:bg-white/20 rounded-xl transition-all active:scale-75 text-white/70 hover:text-white"
                 title="Xóa lịch sử"
               >
-                <div className="w-4 h-4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/></svg></div>
+                <div className="w-4 h-4 text-white/60 group-hover:text-white"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/></svg></div>
               </button>
               <button 
                 onClick={() => setIsOpen(false)}
@@ -352,24 +533,27 @@ export default function ChatAssistant() {
         </div>
       )}
 
-      {/* FAB Button */}
-      <button
-        onClick={() => { setIsOpen(!isOpen); setShowTooltip(false); }}
-        className={clsx(
-          "w-16 h-16 rounded-[1.5rem] flex items-center justify-center shadow-[0_15px_45px_rgba(0,51,102,0.4)] transition-all duration-700 hover:scale-110 active:scale-90 group relative z-50",
-          isOpen ? "bg-white text-[#001e3c] rotate-180" : "bg-gradient-to-tr from-[#001e3c] via-[#004080] to-[#0066cc] text-white"
-        )}
-      >
-        {isOpen ? <X className="w-8 h-8" /> : (
-          <div className="relative">
-            <MessageCircle className="w-9 h-9" />
-            <div className="absolute -top-1 -right-1 flex h-4 w-4">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500 border-2 border-white"></span>
+      {/* FAB Button Layer */}
+      <div className="flex flex-col gap-3 items-end">
+        {/* Main AI FAB Button */}
+        <button
+          onClick={() => { setIsOpen(!isOpen); setShowTooltip(false); }}
+          className={clsx(
+            "w-16 h-16 rounded-[1.5rem] flex items-center justify-center shadow-[0_15px_45px_rgba(0,51,102,0.4)] transition-all duration-700 hover:scale-110 active:scale-90 group relative z-50",
+            isOpen ? "bg-white text-[#001e3c] rotate-180" : "bg-gradient-to-tr from-[#001e3c] via-[#004080] to-[#0066cc] text-white"
+          )}
+        >
+          {isOpen ? <X className="w-8 h-8" /> : (
+            <div className="relative">
+              <MessageCircle className="w-9 h-9" />
+              <div className="absolute -top-1 -right-1 flex h-4 w-4">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500 border-2 border-white"></span>
+              </div>
             </div>
-          </div>
-        )}
-      </button>
+          )}
+        </button>
+      </div>
     </div>
   );
 }

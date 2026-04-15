@@ -57,30 +57,35 @@ export default function ProductDetailPage() {
         const slug = parts[parts.length - 1];
 
         if (slug) {
-          // === KIỂM TRA PHẦN CỨNG (Ưu tiên Database -> Sau đó mới Fallback code) ===
+          // === KIỂM TRA PHẦN CỨNG (Ưu tiên dữ liệu tĩnh đầy đủ, DB bổ sung) ===
           if (isHardwareProduct(category, slug)) {
-            const loadHardwareFromDb = async () => {
-                try {
-                    const res = await fetch(`/api/site/products/${slug}`);
-                    const data = await res.json();
-                    if (data.success && data.data) {
-                        setIsHardware(true);
-                        setHardwareProduct(data.data);
-                        return true;
-                    }
-                } catch (e) {
-                    console.error("DB Fetch failed, falling back to static data:", e);
-                }
-                return false;
-            };
+            // 1. Tìm trong dữ liệu tĩnh trước (có đủ code, shortFeatures, badges...)
+            const hwProduct = findHardwareProduct(slug);
+            if (hwProduct) {
+              setIsHardware(true);
+              setHardwareProduct(hwProduct);
+              return;
+            }
 
-            const foundInDb = await loadHardwareFromDb();
-            if (!foundInDb) {
-                const hwProduct = findHardwareProduct(slug);
-                if (hwProduct) {
-                    setIsHardware(true);
-                    setHardwareProduct(hwProduct);
-                }
+            // 2. Nếu không có dữ liệu tĩnh, thử DB
+            try {
+              const res = await fetch(`/api/site/products/${slug}`);
+              const data = await res.json();
+              if (data.success && data.data) {
+                // Đảm bảo các trường bắt buộc luôn có giá trị 
+                const dbProduct = data.data;
+                dbProduct.code = dbProduct.code || slug.toUpperCase();
+                dbProduct.shortFeatures = dbProduct.shortFeatures || [];
+                dbProduct.badges = dbProduct.badges || ["Bảo hành chính hãng", "Giao hàng toàn quốc", "Đổi trả trong 7 ngày", "Hỗ trợ 24/7"];
+                dbProduct.images = dbProduct.images || [dbProduct.image_url || "/hinhanh/placeholder.png"];
+                dbProduct.description = dbProduct.description || [];
+                dbProduct.specs = dbProduct.specs || [];
+                setIsHardware(true);
+                setHardwareProduct(dbProduct);
+                return;
+              }
+            } catch (e) {
+              console.error("DB Fetch failed:", e);
             }
             return;
           }

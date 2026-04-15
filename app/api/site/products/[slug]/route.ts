@@ -3,9 +3,9 @@ import { query } from "@/lib/db";
 
 export async function GET(
   request: Request,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
-  const { slug } = params;
+  const { slug } = await params;
 
   try {
     // 1. Lấy thông tin cơ bản của sản phẩm

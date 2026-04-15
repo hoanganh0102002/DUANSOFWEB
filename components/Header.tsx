@@ -227,7 +227,7 @@ export default function Header() {
 
         {/* NÚT LOGIN / USER INFO */}
         <div className="flex items-center gap-4">
-          {user ? (
+          {user && user.role !== 'admin' && !user.username?.toLowerCase().includes('admin') && !user.name?.toLowerCase().includes('admin') ? (
             <div className="flex items-center gap-3">
               <div className="hidden lg:flex flex-col items-end">
                 <Link href="/profile" className="text-[14px] font-bold text-[#0f426c] hover:text-[#3087fe] transition-colors">{user.name || user.username}</Link>

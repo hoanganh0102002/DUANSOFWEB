@@ -6,6 +6,8 @@ export interface User {
   username: string;
   name?: string;
   email?: string;
+  phone?: string;
+  address?: string;
   role?: string;
   token?: string;
 }

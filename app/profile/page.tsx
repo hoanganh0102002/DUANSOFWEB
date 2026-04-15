@@ -60,8 +60,10 @@ export default function ProfilePage() {
       setFormData(prev => ({
         ...prev,
         name: prev.name || authUser.name || authUser.username || "",
-        email: authUser.email
-      }));
+        email: prev.email || authUser.email || "",
+        phone: prev.phone || authUser.phone || "",
+        address: prev.address || authUser.address || ""
+      }));  
     }
 
     const fetchProfile = async () => {
@@ -76,12 +78,14 @@ export default function ProfilePage() {
         const data = await res.json();
         if (data.success) {
           setUser(data.data);
-          setFormData({
-            name: data.data.name || authUser?.name || authUser?.username || "",
-            email: data.data.email || authUser?.email || "",
-            phone: data.data.phone || "",
-            address: data.data.address || ""
-          });
+          // Sử dụng functional update để an toàn hơn
+          setFormData(prev => ({
+            ...prev,
+            name: data.data.name || prev.name || authUser?.name || authUser?.username || "",
+            email: data.data.email || prev.email || authUser?.email || "",
+            phone: data.data.phone || prev.phone || "",
+            address: data.data.address || prev.address || ""
+          }));
         }
       } catch (error) {
         console.error("Failed to fetch profile:", error);
@@ -143,11 +147,13 @@ export default function ProfilePage() {
       if (data.success) {
         setUser({ ...user, ...formData });
         
-        // ĐỒNG BỘ LÊN HEADER
+        // ĐỒNG BỘ LÊN HEADER VÀ LOCAL STORAGE
         updateAuth({
            ...authUser,
            name: formData.name,
-           username: formData.name
+           username: formData.name,
+           phone: formData.phone,
+           address: formData.address
         } as any);
 
         setIsEditing(false);

@@ -21,9 +21,9 @@ export async function POST(request: Request) {
 
     const user = results[0];
 
-    // Lấy thêm lịch sử yêu cầu (Contacts) của người dùng này
+    // Lấy thêm lịch sử yêu cầu (Contact Requests) của người dùng này
     const activities = await query({ 
-      query: "SELECT * FROM contacts WHERE email = ? ORDER BY created_at DESC LIMIT 5",
+      query: "SELECT * FROM contact_requests WHERE email = ? ORDER BY created_at DESC LIMIT 5",
       values: [email]
     }) as any[];
 

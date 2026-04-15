@@ -56,7 +56,7 @@ const getProductImage = (name: string) => {
   if (normalizedMatch.includes("nha hang")) return "/hinhanh/hinhphanmem/Screenshot%202026-04-08%20094719.png";
   if (normalizedMatch.includes("nhan su")) return "/hinhanh/hinhphanmem/Screenshot%202026-04-08%20094932.png";
   if (normalizedMatch.includes("erp")) return "/hinhanh/hinhphanmem/Screenshot%202026-04-08%20094952.png";
-  if (normalizedMatch.includes("mat troi")) return "/hinhanh/hinhphanmem/Screenshot%202026-04-08%20095003.png";
+  if (normalizedMatch.includes("tra thuong") || normalizedMatch.includes("mat troi")) return "/hinhanh/hinhphanmem/Screenshot%202026-04-08%20095003.png";
   
   return "/hinhanh/hinhphanmem/Screenshot%202026-04-08%20094757.png";
 };

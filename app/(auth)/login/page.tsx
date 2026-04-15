@@ -64,6 +64,8 @@ function LoginContent() {
                     username: response.data?.username || 'admin',
                     name: response.data?.name || 'Administrator',
                     email: response.data?.email || formData.email,
+                    phone: response.data?.phone || "",
+                    address: response.data?.address || "",
                 };
 
                 // Chuyển hướng SIÊU TỐC: Đẩy đi ngay lập tức
@@ -277,7 +279,7 @@ function LoginContent() {
                                 />
                                 <Label htmlFor="remember" className="text-[13px] font-medium text-[#507588] cursor-pointer">Ghi nhớ đăng nhập</Label>
                             </div>
-                            <Link href="#" className="text-[13px] font-medium text-[#3087fe] hover:underline">Quên mật khẩu?</Link>
+                            <Link href="/forgot-password" title="Quên mật khẩu" className="text-[13px] font-medium text-[#3087fe] hover:underline">Quên mật khẩu?</Link>
                         </div>
 
                         <Button 

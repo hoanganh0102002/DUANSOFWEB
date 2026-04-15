@@ -212,7 +212,33 @@ function generateAdminNotificationEmail(data: {
 }
 
 export async function POST(request: Request) {
+  const ip = request.headers.get('x-forwarded-for') || '127.0.0.1';
+
   try {
+    // 0. Check if IP is blocked
+    const isBlocked = await query({
+      query: "SELECT * FROM blocked_ips WHERE ip_address = ? AND (expires_at > NOW() OR expires_at IS NULL)",
+      values: [ip]
+    }) as any[];
+
+    if (isBlocked.length > 0) {
+      return NextResponse.json(
+        { success: false, message: `Địa chỉ IP của bạn đã bị chặn do hành vi spam. Vui lòng liên hệ hotline để được hỗ trợ.` },
+        { status: 403 }
+      );
+    }
+
+    // 0.1 Check for spam (More than 5 requests in 10 mins from same IP)
+    const recentRequests = await query({
+      query: "SELECT COUNT(*) as count FROM contact_requests WHERE created_at > DATE_SUB(NOW(), INTERVAL 10 MINUTE)" 
+    }) as any[];
+    
+    // Better spam check using security_alerts
+    const spamAlerts = await query({
+      query: "SELECT COUNT(*) as count FROM security_alerts WHERE ip_address = ? AND type = 'SPAM' AND created_at > DATE_SUB(NOW(), INTERVAL 10 MINUTE)",
+      values: [ip]
+    }) as any[];
+
     const body = await request.json();
     const { fullName, phone, email, services, message } = body;
 
@@ -249,6 +275,33 @@ export async function POST(request: Request) {
       errors.services = "Chỉ được chọn tối đa 5 dịch vụ";
     }
 
+    // Logic: Nếu gửi > 3 lần trong 5 phút từ cùng 1 IP (dựa trên database)
+    const ipCheck = await query({
+      query: "SELECT COUNT(*) as count FROM contact_requests WHERE phone = ? AND created_at > DATE_SUB(NOW(), INTERVAL 5 MINUTE)",
+      values: [phone]
+    }) as any[];
+
+    if (ipCheck[0].count >= 3) {
+      // Log alert
+      await query({
+        query: "INSERT INTO security_alerts (type, message, ip_address, severity) VALUES (?, ?, ?, ?)",
+        values: ['SPAM', `Phát hiện gửi mẫu liên hệ liên tục (Phone: ${phone})`, ip, 'high']
+      });
+
+      // Nếu đã có 2 cảnh báo SPAM trước đó, khóa IP 24h luôn
+      if (spamAlerts[0].count >= 2) {
+         await query({
+           query: "INSERT IGNORE INTO blocked_ips (ip_address, reason, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 24 HOUR))",
+           values: [ip, 'Tự động chặn do Spam Form liên tục']
+         });
+      }
+
+      return NextResponse.json(
+        { success: false, message: "Bạn đã gửi yêu cầu quá nhanh. Vui lòng đợi 5 phút." },
+        { status: 429 }
+      );
+    }
+
     // Return validation errors
     if (Object.keys(errors).length > 0) {
       return NextResponse.json(
@@ -279,6 +332,8 @@ export async function POST(request: Request) {
     // ===== SEND EMAIL & UPDATE STATUS =====
     let emailSent = false;
     let autoContacted = false;
+    const requestedService = services[0] || "Dịch vụ phần mềm";
+    let baseDocKey = "default";
 
     // Only send email if customer provided email AND SMTP is configured
     if (sanitizedEmail && process.env.SMTP_USER && process.env.SMTP_PASS) {
@@ -286,11 +341,9 @@ export async function POST(request: Request) {
         const transporter = createTransporter();
         
         // 1. Tìm tài liệu phù hợp (lấy từ cái đầu tiên trong danh sách services)
-        const requestedService = services[0]; // Có thể là "Phần mềm quản lý Bãi xe Full"
         const { productDocs } = require("@/lib/emailTemplates");
         
         // Tìm kiếm thông minh: xem requestedService có chứa từ khóa trong productDocs không
-        let baseDocKey = "default";
         for (const key in productDocs) {
           if (key !== "default" && requestedService.includes(key)) {
             baseDocKey = key;
@@ -323,7 +376,7 @@ export async function POST(request: Request) {
 
         emailSent = true;
         autoContacted = true; // Đánh dấu đã tự động gửi tài liệu
-        console.log(`[Contact] Auto-docs sent to: ${sanitizedEmail} for ${primaryService}`);
+        console.log(`[Contact] Auto-docs sent to: ${sanitizedEmail} for ${requestedService}`);
 
         // 3. Thông báo cho Admin
         const adminEmail = process.env.ADMIN_EMAIL || "cskh@sof.vn";
@@ -357,7 +410,19 @@ export async function POST(request: Request) {
         setTimeout(async () => {
           try {
             const { detailedProductSolutions } = require("@/lib/detailedSolutions");
-            const solution = detailedProductSolutions[requestedService] || detailedProductSolutions[baseDocKey] || detailedProductSolutions["default"];
+            // Tìm kiếm thông minh: so khớp tên sản phẩm khách yêu cầu vs key trong detailedSolutions
+            let solution = detailedProductSolutions["default"];
+            const searchTerm = requestedService.toLowerCase();
+            for (const key in detailedProductSolutions) {
+              if (key !== "default" && searchTerm.includes(key.toLowerCase())) {
+                solution = detailedProductSolutions[key];
+                break;
+              }
+            }
+            // Fallback: thử tìm theo baseDocKey (từ emailTemplates)
+            if (solution === detailedProductSolutions["default"] && baseDocKey !== "default" && detailedProductSolutions[baseDocKey]) {
+              solution = detailedProductSolutions[baseDocKey];
+            }
             const secondTransporter = createTransporter();
             
             await secondTransporter.sendMail({

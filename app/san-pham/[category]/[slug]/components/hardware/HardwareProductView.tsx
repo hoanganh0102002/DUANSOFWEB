@@ -42,12 +42,12 @@ export default function HardwareProductView({ product }: HardwareProductViewProp
 
   // Category label from code
   const getCategoryLabel = () => {
-    if (product.code.includes("CDT")) return "CÂN ĐIỆN TỬ";
-    if (product.code.includes("GIB")) return "GIẤY IN BILL";
-    if (product.code.includes("MIB")) return "MÁY IN";
-    if (product.code.includes("QMV")) return "MÁY QUÉT";
-    if (product.code.includes("POS")) return "MÁY POS";
-    if (product.code.includes("TDT")) return "KÉT TIỀN";
+    if (product.code?.includes("CDT")) return "CÂN ĐIỆN TỬ";
+    if (product.code?.includes("GIB")) return "GIẤY IN BILL";
+    if (product.code?.includes("MIB")) return "MÁY IN";
+    if (product.code?.includes("QMV")) return "MÁY QUÉT";
+    if (product.code?.includes("POS")) return "MÁY POS";
+    if (product.code?.includes("TDT")) return "KÉT TIỀN";
     return "PHẦN CỨNG";
   };
 
@@ -516,7 +516,7 @@ function ContactModal({ isOpen, onClose, packageName }: { isOpen: boolean, onClo
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: formData.name,
+          fullName: formData.name,
           phone: formData.phone,
           email: formData.email,
           services: [packageName],
