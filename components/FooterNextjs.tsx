@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { productService, getProductUrl } from "@/services/productService";
@@ -16,7 +16,7 @@ const offices = [
   },
 ];
 
-export const Footer = () => {
+const FooterContent = () => {
   const searchParams = useSearchParams();
   const currentLang = searchParams.get('lang') || 'vi';
   const { tenant } = useTenant();
@@ -190,6 +190,14 @@ export const Footer = () => {
         </div>
       ) : null}
     </>
+  );
+};
+
+const Footer = () => {
+  return (
+    <Suspense fallback={<div className="bg-[#f4fbff] py-10 text-center text-xs text-blue-200/30">Đang tải chân trang...</div>}>
+      <FooterContent />
+    </Suspense>
   );
 };
 
