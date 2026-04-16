@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
+import FacebookLogin from 'react-facebook-login/dist/facebook-login-render-props';
 import { 
     Eye, 
     EyeOff, 
@@ -28,7 +29,9 @@ export default function LoginPage() {
 
   return (
     <GoogleOAuthProvider clientId={googleClientId}>
-      <LoginContent />
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Đang tải biểu mẫu...</div>}>
+        <LoginContent />
+      </Suspense>
     </GoogleOAuthProvider>
   );
 }
@@ -125,6 +128,34 @@ function LoginContent() {
         onError: () => toast.error('Đăng nhập Google thất bại!'),
     });
 
+    const responseFacebook = async (response: any) => {
+        if (response.accessToken) {
+            setIsLoading(true);
+            try {
+                // Giả định bạn có service loginWithFacebook dưới backend
+                // const res = await authService.loginWithFacebook(response);
+                
+                toast.success("Đăng nhập Facebook thành công!");
+                login({
+                    username: response.id,
+                    name: response.name,
+                    email: response.email || `${response.id}@facebook.com`,
+                });
+                router.push(redirectUrl);
+            } catch (error) {
+                console.error(error);
+                toast.error("Lỗi xác thực Facebook!");
+            } finally {
+                setIsLoading(false);
+            }
+        } else {
+            // response không có accessToken nghĩa là đăng nhập thất bại hoặc bị hủy
+            if(response.status !== "unknown") {
+               toast.error('Đăng nhập Facebook thất bại!');
+            }
+        }
+    };
+
     return (
         <div className="h-screen w-full flex bg-[#f5f9fc] overflow-hidden font-sans">
             {/* LEFT SIDE: BRANDING & INFO (50%) */}
@@ -209,10 +240,18 @@ function LoginContent() {
                             <Search className="w-4 h-4 text-blue-500" />
                             <span className="text-[13px] font-bold text-[#0f426c]">Tiếp tục với Google</span>
                         </button>
-                        <button type="button" className="w-full h-11 rounded-xl border border-blue-100 bg-[#f8fbff] hover:bg-blue-50 flex items-center justify-center gap-3 transition-all">
-                            <span className="text-lg font-black text-blue-600">f</span>
-                            <span className="text-[13px] font-bold text-[#0f426c]">Tiếp tục với Facebook</span>
-                        </button>
+                        <FacebookLogin
+                            appId={process.env.NEXT_PUBLIC_FACEBOOK_APP_ID || "1234567890"} // Replace with your actual valid APP ID
+                            autoLoad={false}
+                            fields="name,email,picture"
+                            callback={responseFacebook}
+                            render={(renderProps: any) => (
+                                <button type="button" onClick={renderProps.onClick} className="w-full h-11 rounded-xl border border-blue-100 bg-[#f8fbff] hover:bg-blue-50 flex items-center justify-center gap-3 transition-all">
+                                    <span className="text-lg font-black text-blue-600">f</span>
+                                    <span className="text-[13px] font-bold text-[#0f426c]">Tiếp tục với Facebook</span>
+                                </button>
+                            )}
+                        />
                         <button type="button" className="w-full h-11 rounded-xl border border-blue-100 bg-[#f8fbff] hover:bg-blue-50 flex items-center justify-center gap-3 transition-all">
                             <span className="text-lg text-[#144773]"></span>
                             <span className="text-[13px] font-bold text-[#0f426c]">Tiếp tục với Apple</span>

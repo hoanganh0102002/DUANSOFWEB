@@ -378,7 +378,7 @@ export async function POST(request: Request) {
         autoContacted = true; // Đánh dấu đã tự động gửi tài liệu
         console.log(`[Contact] Auto-docs sent to: ${sanitizedEmail} for ${requestedService}`);
 
-        // 3. Thông báo cho Admin
+        // 3. Thông báo cho Admin qua Email
         const adminEmail = process.env.ADMIN_EMAIL || "cskh@sof.vn";
         await transporter.sendMail({
           from: `"SOF Website" <${process.env.SMTP_USER}>`,
@@ -393,6 +393,27 @@ export async function POST(request: Request) {
              requestId,
           })
         });
+
+        // 4. Bắn BOT Webhook ra TELEGRAM / ZALO (Tức thời 1s cho CEO)
+        if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID) {
+          const telegramMessage = `🚀 *🔥🔥 BÁO ĐỘNG CÓ KHÁCH MỚI 🔥🔥*\n\n`
+            + `👤 *Tên Khách:* ${sanitizedName}\n`
+            + `📞 *Điện Thoại:* ${sanitizedPhone}\n`
+            + `📧 *Email:* ${sanitizedEmail || 'Không cấp'}\n\n`
+            + `🛠 *Quan tâm:* ${requestedService}\n`
+            + `💬 *Lời nhắn:* ${sanitizedMessage || '...'}\n\n`
+            + `_Hệ thống BOT Báo Cáo Tự Động SOF_`;
+            
+          fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: process.env.TELEGRAM_CHAT_ID,
+              text: telegramMessage,
+              parse_mode: 'Markdown'
+            })
+          }).catch(e => console.error("Telegram Webhook Failed:", e));
+        }
 
       } catch (emailError: any) {
         console.error("[Contact] Auto-process failed:", emailError.message);

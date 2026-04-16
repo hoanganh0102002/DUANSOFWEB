@@ -7,7 +7,7 @@ import {
   CheckCircle2, ChevronRight, Globe, ShieldCheck ,ChevronDown, 
   Check, Clock, MessageCircle, HelpCircle, Video, FileText,
   AlertCircle, Loader2, X, Sparkles, LayoutDashboard, LogOut, RefreshCw, Search,
-  Users, Trash2, TrendingUp, Calendar, XCircle, Shield
+  Users, Trash2, TrendingUp, Calendar, XCircle, Shield, Activity
 } from "lucide-react";
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -17,8 +17,8 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { toast } from "sonner";
 import { 
-  AnalyticsDashboard, UserActivityLog, CampaignManager, 
-  TicketSystem, SecurityDashboard 
+  AnalyticsDashboard, UserActivityLog, CampaignManager,     
+  TicketSystem, SecurityDashboard, ServerMonitorDashboard
 } from "@/components/admin/AdvancedFeatures";
 import { LiveChatCenter } from "@/components/admin/LiveChatCenter";
 
@@ -54,7 +54,7 @@ const STATUS_CONFIG = {
 export default function AdminDashboard() {
   const router = useRouter();
   const [admin, setAdmin] = useState<AdminUser | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "contacts" | "users" | "trash" | "analytics" | "user_logs" | "campaigns" | "tickets" | "security" | "live_chat">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "contacts" | "users" | "trash" | "analytics" | "user_logs" | "campaigns" | "tickets" | "security" | "system_monitor" | "live_chat">("overview");
   const [contacts, setContacts] = useState<ContactRequest[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [trashData, setTrashData] = useState<{ contacts: any[], users: any[] }>({ contacts: [], users: [] });
@@ -446,6 +446,18 @@ export default function AdminDashboard() {
             An ninh hệ thống
           </button>
 
+          <button
+            onClick={() => setActiveTab("system_monitor")}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
+              activeTab === "system_monitor"
+                ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
+                : "text-blue-200/40 hover:text-blue-200/70 hover:bg-white/[0.03]"
+            }`}
+          >
+            <Activity className="w-5 h-5" />
+            Giám sát Máy chủ
+          </button>
+
           <div className="pt-2">
             <button
               onClick={() => setActiveTab("trash")}
@@ -517,7 +529,8 @@ export default function AdminDashboard() {
                  activeTab === "campaigns" ? "Tự động hóa Marketing" :
                  activeTab === "tickets" ? "Trung tâm Hỗ trợ Khách hàng" :
                  activeTab === "live_chat" ? "Tư vấn Trực tuyến Live" : 
-                 activeTab === "security" ? "Trung tâm Cảnh báo An ninh" : "Thùng rác"}
+                 activeTab === "security" ? "Trung tâm Cảnh báo An ninh" : 
+                 activeTab === "system_monitor" ? "Giám sát Máy chủ (Real-time)" : "Thùng rác"}
               </h2>
               <p className="text-sm text-blue-200/40 mt-0.5">
                 {activeTab === "overview" 
@@ -793,7 +806,7 @@ export default function AdminDashboard() {
 
 
 
-              {/* Contact List */}
+              {/* KANBAN BOARD & AI SENTIMENT */}
               {isLoading ? (
                 <div className="flex items-center justify-center py-20">
                   <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
@@ -804,90 +817,116 @@ export default function AdminDashboard() {
                   <p className="text-blue-200/40 font-medium">Không có yêu cầu tư vấn nào</p>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {filteredContacts.map((contact) => {
-                    const statusInfo = STATUS_CONFIG[contact.status];
-                    const services = parseServices(contact.services);
-                    
-                    return (
-                      <div
-                        key={contact.id}
-                        className={`bg-white/[0.03] border rounded-2xl p-5 hover:bg-white/[0.05] transition-all cursor-pointer group ${
-                          selectedContact?.id === contact.id ? "border-blue-500/30 bg-blue-500/[0.05]" : "border-white/[0.06]"
-                        }`}
-                        onClick={() => setSelectedContact(contact)}
-                      >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-3 mb-2">
-                              <h3 className="text-[15px] font-bold text-white">{contact.full_name}</h3>
-                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold border ${statusInfo.color}`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${statusInfo.dotColor}`} />
-                                {statusInfo.label}
-                              </span>
-                              <span className="text-[11px] text-blue-200/25">#{contact.id}</span>
-                            </div>
-                            <div className="flex items-center gap-4 text-sm">
-                              <span className="flex items-center gap-1.5 text-blue-200/50">
-                                <Phone className="w-3.5 h-3.5" />
-                                {contact.phone}
-                              </span>
-                              {contact.email && (
-                                <span className="flex items-center gap-1.5 text-blue-200/50">
-                                  <Mail className="w-3.5 h-3.5" />
-                                  {contact.email}
-                                </span>
-                              )}
-                              <span className="flex items-center gap-1.5 text-blue-200/30 text-xs">
-                                <Clock className="w-3 h-3" />
-                                {timeAgo(contact.created_at)}
-                              </span>
-                            </div>
-                            <div className="flex flex-wrap gap-1.5 mt-3">
-                              {services.map((s, i) => (
-                                <span key={i} className="px-2.5 py-1 bg-blue-500/8 border border-blue-500/15 rounded-lg text-[11px] text-blue-300/60 font-medium">
-                                  {s}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-
-                          <div 
-                            className="flex items-center gap-2 relative z-10 opacity-0 group-hover:opacity-100 transition-all duration-300 scale-95 group-hover:scale-100"
-                            onClick={(e) => e.stopPropagation()} // Chặn click vào dòng khi bấm nút
-                          >
-                            {contact.status === "pending" && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); handleStatusUpdate(contact.id, "contacted"); }}
-                                disabled={isUpdating === contact.id}
-                                className="flex items-center gap-1.5 bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-2 text-blue-400 text-xs font-bold hover:bg-blue-500/20 transition-all"
-                              >
-                                {isUpdating === contact.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Phone className="w-3.5 h-3.5" />}
-                                Đã liên hệ
-                              </button>
-                            )}
-                            {contact.status === "contacted" && (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); handleStatusUpdate(contact.id, "completed"); }}
-                                disabled={isUpdating === contact.id}
-                                className="flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2 text-emerald-400 text-xs font-bold hover:bg-emerald-500/20 transition-all"
-                              >
-                                {isUpdating === contact.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                                Hoàn thành
-                              </button>
-                            )}
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleDelete(contact.id, 'contact'); }}
-                              disabled={isDeleting === contact.id}
-                              className="flex items-center gap-1.5 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 text-red-400 text-xs font-bold hover:bg-red-500/20 transition-all disabled:opacity-50"
-                            >
-                              {isDeleting === contact.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                            </button>
-                          </div>
-                        </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in slide-in-from-bottom-4 duration-500">
+                  {[
+                    { 
+                      id: "pending", 
+                      title: "CHỜ XỬ LÝ", 
+                      icon: <Clock className="w-4 h-4 text-amber-400" />,
+                      borderColor: "border-amber-500/20",
+                      headerBg: "bg-amber-500/10",
+                      items: filteredContacts.filter(c => c.status === "pending")
+                    },
+                    { 
+                      id: "contacted", 
+                      title: "ĐANG TƯ VẤN (CẦN FOLOW)", 
+                      icon: <Phone className="w-4 h-4 text-blue-400" />,
+                      borderColor: "border-blue-500/20",
+                      headerBg: "bg-blue-500/10",
+                      items: filteredContacts.filter(c => c.status === "contacted")
+                    },
+                    { 
+                      id: "completed", 
+                      title: "ĐÃ CHỐT/XỬ LÝ XONG", 
+                      icon: <CheckCircle2 className="w-4 h-4 text-emerald-400" />,
+                      borderColor: "border-emerald-500/20",
+                      headerBg: "bg-emerald-500/10",
+                      items: filteredContacts.filter(c => c.status === "completed")
+                    }
+                  ].map(col => (
+                    <div 
+                      key={col.id} 
+                      className={`bg-[#0f1729] rounded-2xl border ${col.borderColor} flex flex-col shadow-xl`}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        const contactId = e.dataTransfer.getData("contactId");
+                        if (contactId) {
+                          handleStatusUpdate(Number(contactId), col.id);
+                        }
+                      }}
+                    >
+                      <div className={`p-4 border-b ${col.borderColor} ${col.headerBg} rounded-t-2xl flex items-center justify-between`}>
+                        <h4 className="font-bold text-white text-sm tracking-widest flex items-center gap-2">
+                          {col.icon} {col.title}
+                        </h4>
+                        <span className="bg-[#0f1729] px-2 py-0.5 rounded text-xs font-black text-slate-300">
+                          {col.items.length}
+                        </span>
                       </div>
-                    );
-                  })}
+                      <div className="p-4 flex-1 space-y-3 min-h-[500px]">
+                        {col.items.map(contact => {
+                          const services = parseServices(contact.services);
+                          
+                          // AI Sentiment Logic Mock
+                          const getSentiment = (msg?: string) => {
+                            if(!msg) return { label: 'Bình thường', color: 'bg-slate-500/10 text-slate-400 border-slate-500/20' };
+                            const m = msg.toLowerCase();
+                            if(m.includes('gấp') || m.includes('lỗi') || m.includes('nhanh') || m.includes('sớm') || m.includes('help')) {
+                              return { label: '🔥 Khách Gấp', color: 'bg-red-500/10 text-red-400 border-red-500/30' };
+                            }
+                            if(m.includes('tốt') || m.includes('cảm ơn') || m.includes('chào') || m.includes('mua')) {
+                              return { label: '💚 Rất Thiện chí', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' };
+                            }
+                            if(m.includes('hỏi') || m.includes('nào') || m.includes('báo giá') || m.includes('tư vấn')) {
+                              return { label: '💡 Cần hỗ trợ', color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30' };
+                            }
+                            return { label: '💬 Bình thường', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20' };
+                          };
+                          
+                          const sentiment = getSentiment(contact.message || "");
+
+                          return (
+                            <div
+                              key={contact.id}
+                              draggable
+                              onDragStart={(e) => {
+                                e.dataTransfer.setData("contactId", contact.id.toString());
+                              }}
+                              onClick={() => setSelectedContact(contact)}
+                              className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 cursor-grab active:cursor-grabbing hover:bg-white/[0.07] transition-all group relative overflow-hidden"
+                            >
+                              <div className="absolute top-0 left-0 w-1 h-full bg-slate-500 group-hover:bg-cyan-400 transition-colors"></div>
+                              <div className="flex justify-between items-start mb-2">
+                                <h3 className="text-sm font-bold text-white group-hover:text-cyan-300 transition-colors">{contact.full_name}</h3>
+                                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded border ${sentiment.color}`}>
+                                  {sentiment.label}
+                                </span>
+                              </div>
+                              <p className="text-xs text-blue-200/50 mb-1 flex items-center gap-1.5"><Phone className="w-3 h-3" /> {contact.phone}</p>
+                              {contact.email && <p className="text-xs text-blue-200/50 mb-3 flex items-center gap-1.5 truncate"><Mail className="w-3 h-3" /> {contact.email}</p>}
+                              
+                              <div className="flex flex-wrap gap-1 mb-3">
+                                {services.map((s, i) => (
+                                  <span key={i} className="px-1.5 py-0.5 bg-blue-500/10 rounded text-[10px] text-blue-400 font-medium">#{s}</span>
+                                ))}
+                              </div>
+
+                              <div className="flex justify-between items-center mt-3 pt-3 border-t border-white/5">
+                                <p className="text-[10px] text-slate-500">{timeAgo(contact.created_at)}</p>
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); handleDelete(contact.id, 'contact'); }} 
+                                  className="text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </>
@@ -1012,6 +1051,7 @@ export default function AdminDashboard() {
           {activeTab === "campaigns" && <CampaignManager />}
           {activeTab === "tickets" && <TicketSystem />}
           {activeTab === "security" && <SecurityDashboard />}
+          {activeTab === "system_monitor" && <ServerMonitorDashboard />}
           {activeTab === "live_chat" && <LiveChatCenter />}
 
           {/* Trash Tab */}

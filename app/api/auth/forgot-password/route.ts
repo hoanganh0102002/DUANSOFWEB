@@ -31,7 +31,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Kiểm tra user có tồn tại và thuộc hệ thống local không
+    // Kiểm tra user có tồn tại
     const users = await query({
       query: "SELECT id, name, provider FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1",
       values: [email],
@@ -44,31 +44,25 @@ export async function POST(request: Request) {
       );
     }
 
-    if (users[0].provider !== "local") {
+    if (users[0].provider === "google" || users[0].provider === "facebook") {
+        const providerName = users[0].provider === "google" ? "Google" : "Facebook";
         return NextResponse.json(
-            { success: false, message: "Tài khoản này đăng nhập bằng Google/Facebook. Vui lòng đăng nhập qua phương thức đó." },
+            { success: false, message: `Tài khoản này đăng nhập bằng Google/Facebook. Vui lòng đăng nhập qua phương thức đó.` },
             { status: 400 }
         );
     }
 
-    // Tạo mật khẩu mới
-    const newPassword = generatePassword();
+    // Sinh mã OTP 6 số
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 15 * 60000); // 15 phút
 
-    // Cập nhật mật khẩu trong DB
+    // Lưu OTP
     await query({
-      query: "UPDATE users SET password = ? WHERE id = ?",
-      values: [newPassword, users[0].id],
+      query: "INSERT INTO password_resets (email, otp, expires_at) VALUES (?, ?, ?)",
+      values: [email, otp, expiresAt],
     });
 
-    // Log activity
-    try {
-      await query({
-        query: "INSERT INTO security_alerts (type, message, ip_address, severity) VALUES (?, ?, ?, ?)",
-        values: ['PASSWORD_RESET', `Yêu cầu cấp lại mật khẩu cho: ${email}`, request.headers.get("x-forwarded-for") || "127.0.0.1", 'low']
-      });
-    } catch (e) {}
-
-    // Gửi email mật khẩu mới
+    // Gửi email OTP
     try {
       if (process.env.SMTP_USER && process.env.SMTP_PASS) {
         const nodemailer = require("nodemailer");
@@ -89,18 +83,14 @@ export async function POST(request: Request) {
             </div>
             <div style="padding: 30px;">
               <h2>Chào ${users[0].name},</h2>
-              <p>Bạn vừa yêu cầu cấp lại mật khẩu cho tài khoản SOF.</p>
-              <p>Dưới đây là mật khẩu mới của bạn:</p>
+              <p>Bạn vừa yêu cầu cấp lại mật khẩu cho tài khoản.</p>
+              <p>Dưới đây là mã xác thực (OTP) của bạn. Mã này có hiệu lực trong 15 phút:</p>
               <div style="background-color: #f5f9fc; padding: 15px; border-radius: 6px; margin: 20px 0; text-align: center;">
-                <p style="margin: 5px 0; font-size: 16px;">Mật khẩu mới:</p>
-                <div style="font-size: 24px; color: #3087fe; font-weight: bold; letter-spacing: 2px; margin: 10px 0;">${newPassword}</div>
+                <div style="font-size: 32px; color: #3087fe; font-weight: bold; letter-spacing: 5px; margin: 10px 0;">${otp}</div>
               </div>
-              <p style="color: #666; font-size: 14px;"><em>Vui lòng đổi mật khẩu sau khi đăng nhập để đảm bảo an toàn.</em></p>
+              <p style="color: #666; font-size: 14px;"><em>Không chia sẻ mã này cho bất kỳ ai.</em></p>
               <br/>
-              <p>Trân trọng,<br/><strong>Đội ngũ SOF Solutions</strong></p>
-            </div>
-            <div style="background-color: #f8fbff; padding: 15px; text-align: center; font-size: 12px; color: #999;">
-              Nếu bạn không yêu cầu cấp lại mật khẩu, vui lòng bỏ qua email này hoặc liên hệ support nếu thấy bất thường.
+              <p>Trân trọng,<br/><strong>Đội ngũ SOF</strong></p>
             </div>
           </div>
         `;
@@ -108,19 +98,17 @@ export async function POST(request: Request) {
         await transporter.sendMail({
           from: `"SOF Solutions" <${process.env.SMTP_USER}>`,
           to: email,
-          subject: "🔑 Mật khẩu mới cho tài khoản SOF",
+          subject: `🔑 Mã xác thực của bạn: ${otp}`,
           html: emailHtml,
         });
       }
     } catch (mailError) {
       console.error("[Forgot Password] Email failed:", mailError);
-      // Vẫn báo thành công nhưng thực tế email tạch thì hơi dở, 
-      // cơ mà để bảo mật ta ko nên lộ email sống hay chết
     }
 
     return NextResponse.json({
       success: true,
-      message: "Mật khẩu mới đã được gửi vào email của bạn. Vui lòng kiểm tra hộp thư (bao gồm cả thư rác).",
+      message: "Mã OTP đã được gửi vào email của bạn.",
     });
   } catch (error: any) {
     console.error("[Forgot Password] Error:", error);

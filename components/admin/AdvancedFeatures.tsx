@@ -397,6 +397,8 @@ export const TicketSystem = () => (
 
 export const SecurityDashboard = () => {
   const [data, setData] = useState<{ alerts: any[], stats: any }>({ alerts: [], stats: { blocked_ips_count: 0, failed_logins_24h: 0 } });
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [maintenanceMsg, setMaintenanceMsg] = useState("Hệ thống đang được nâng cấp. Vui lòng quay lại sau 30 phút.");
   const [loading, setLoading] = useState(true);
 
   const fetchSecurityData = () => {
@@ -406,17 +408,51 @@ export const SecurityDashboard = () => {
         if (res.success) {
           setData(res.data);
         }
-        setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch();
+  };
+
+  const fetchMaintenance = () => {
+    fetch('/api/maintenance')
+      .then(res => res.json())
+      .then(res => {
+        setMaintenanceMode(res.maintenance);
+        if (res.message) setMaintenanceMsg(res.message);
+        setLoading(false);
+      });
   };
 
   useEffect(() => {
     fetchSecurityData();
-    // Auto refresh every 30 seconds
-    const interval = setInterval(fetchSecurityData, 30000);
+    fetchMaintenance();
+    const interval = setInterval(() => {
+        fetchSecurityData();
+        fetchMaintenance();
+    }, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  const toggleMaintenance = async () => {
+    if (!window.confirm(`Bạn có chắc chắn muốn ${maintenanceMode ? 'TẮT' : 'BẬT'} chế độ bảo trì?\n(Tất cả User sẽ bị đăng xuất và nhận Email)`)) return;
+    
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/maintenance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enable: !maintenanceMode, message: maintenanceMsg })
+      });
+      const resData = await res.json();
+      if (resData.success) {
+        setMaintenanceMode(!maintenanceMode);
+        alert(resData.message);
+      }
+    } catch(e) {
+      alert("Cập nhật thất bại!");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const timeAgo = (dateStr: string) => {
     const diff = Date.now() - new Date(dateStr).getTime();
@@ -430,9 +466,44 @@ export const SecurityDashboard = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      
+      {/* Maintenance Panel */}
+      <div className={`border rounded-2xl p-6 shadow-2xl transition-all ${maintenanceMode ? 'bg-amber-500/10 border-amber-500/30' : 'bg-[#0f1729] border-white/10'}`}>
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h3 className={`text-xl font-bold flex items-center gap-2 ${maintenanceMode ? 'text-amber-400' : 'text-white'}`}>
+              <AlertTriangle className={`w-6 h-6 ${maintenanceMode ? 'text-amber-400' : 'text-slate-400'}`} /> 
+              Chế độ Bảo trì (Maintenance Mode)
+            </h3>
+            <p className="text-sm text-slate-400 mt-1">Khi bật, tất cả tài khoản thông thường sẽ bị ngắt kết nối và gửi mail thông báo ngay lập tức.</p>
+          </div>
+          <button 
+            disabled={loading}
+            onClick={toggleMaintenance}
+            className={`px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg transition-all flex items-center gap-2 ${
+                maintenanceMode 
+                ? "bg-red-500 hover:bg-red-600 text-white shadow-red-500/20" 
+                : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20"
+            }`}>
+            <Settings className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> 
+            {loading ? "Đang xử lý..." : (maintenanceMode ? "TẮT BẢO TRÌ" : "BẬT BẢO TRÌ NAY")}
+          </button>
+        </div>
+        <div className="mt-4 flex flex-col space-y-2">
+          <label className="text-xs font-bold text-slate-400 uppercase">Thông báo hiển thị và Gửi Mail:</label>
+          <input 
+            type="text" 
+            value={maintenanceMsg}
+            onChange={(e) => setMaintenanceMsg(e.target.value)}
+            disabled={maintenanceMode}
+            className={`w-full max-w-2xl bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 ${maintenanceMode ? 'opacity-50 cursor-not-allowed' : ''}`}
+          />
+        </div>
+      </div>
+
       <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-6 flex items-start gap-4 shadow-2xl">
         <div className="w-12 h-12 bg-red-500/20 flex items-center justify-center rounded-xl flex-shrink-0">
-          <AlertTriangle className="w-6 h-6 text-red-500" />
+          <ShieldAlert className="w-6 h-6 text-red-500" />
         </div>
         <div>
           <h3 className="text-xl font-bold text-red-400 mb-1">Cảnh báo An ninh & Bất thường</h3>
@@ -440,11 +511,11 @@ export const SecurityDashboard = () => {
           <div className="flex gap-4">
             <div className="bg-white/5 border border-red-500/10 p-3 rounded-xl min-w-[200px]">
               <p className="text-xs text-red-300/50 uppercase font-bold mb-1">IP bị khóa (Hiện tại)</p>
-              <p className="text-2xl font-black text-white">{loading ? "..." : data.stats?.blocked_ips_count || 0}</p>
+              <p className="text-2xl font-black text-white">{loading && !data.stats.failed_logins_24h ? "..." : data.stats?.blocked_ips_count || 0}</p>
             </div>
             <div className="bg-white/5 border border-red-500/10 p-3 rounded-xl min-w-[200px]">
               <p className="text-xs text-red-300/50 uppercase font-bold mb-1">Login thất bại (24h)</p>
-              <p className="text-2xl font-black text-white">{loading ? "..." : data.stats?.failed_logins_24h || 0}</p>
+              <p className="text-2xl font-black text-white">{loading && !data.stats.failed_logins_24h ? "..." : data.stats?.failed_logins_24h || 0}</p>
             </div>
           </div>
         </div>
@@ -487,6 +558,113 @@ export const SecurityDashboard = () => {
               </div>
             </div>
           ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const ServerMonitorDashboard = () => {
+  const [stats, setStats] = useState<any>(null);
+  const [cpuHistory, setCpuHistory] = useState<any[]>(Array(15).fill({ time: '', usage: 0 }));
+  const [loading, setLoading] = useState(true);
+
+  const fetchStats = () => {
+    fetch('/api/admin/server-status')
+      .then(res => res.json())
+      .then(res => {
+        if (res.success) {
+          setStats(res.data);
+          const now = new Date();
+          const timeStr = `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`;
+          setCpuHistory(prev => {
+            const newHist = [...prev.slice(1), { time: timeStr, usage: parseFloat(res.data.cpuUsage) }];
+            return newHist;
+          });
+        }
+        setLoading(false);
+      })
+      .catch();
+  };
+
+  useEffect(() => {
+    fetchStats();
+    const interval = setInterval(fetchStats, 2000); // 2s refresh
+    return () => clearInterval(interval);
+  }, []);
+
+  if (loading && !stats) return <div className="text-center py-10 text-slate-500">Đang khởi động hệ thống theo dõi...</div>;
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500 font-mono">
+      {/* HEADER TÍNH NĂNG */}
+      <div className="bg-[#0f1729] rounded-2xl border border-white/10 shadow-2xl p-6 flex justify-between items-center relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-[50px]"></div>
+        <div>
+          <h3 className="text-xl font-black text-cyan-400 uppercase tracking-widest flex items-center gap-2">
+            <Activity className="w-5 h-5" /> Server Resource Monitor
+          </h3>
+          <p className="text-sm text-slate-400 mt-1 font-sans">Giám sát tài nguyên máy chủ cập nhật realtime (2s/lần)</p>
+        </div>
+        <div className="text-right flex flex-col items-end">
+          <p className="text-xs text-slate-400 uppercase tracking-widest mb-1">Trạng thái Server</p>
+          <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.8)]"></span>
+            <span className="text-emerald-400 text-xs font-black uppercase tracking-widest">ONLINE</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* CPU USAGE */}
+        <div className="bg-[#0f1729] rounded-2xl border border-white/10 p-6 shadow-2xl relative">
+          <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6 border-b border-white/5 pb-2 font-sans">Thời gian thực CPU Usage</h4>
+          <div className="flex items-end gap-4 mb-8">
+            <div className="text-5xl font-black text-white">{stats?.cpuUsage}%</div>
+            <div className="text-xs text-slate-500 pb-1">/ {stats?.cpuCores} Cores ({stats?.cpuName})</div>
+          </div>
+          <div className="h-[120px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={cpuHistory}>
+                <defs>
+                  <linearGradient id="colorCpu" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <YAxis domain={[0, 100]} hide />
+                <Area type="monotone" dataKey="usage" stroke="#06b6d4" strokeWidth={3} fillOpacity={1} fill="url(#colorCpu)" isAnimationActive={false} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* MEMORY USAGE */}
+        <div className="bg-[#0f1729] rounded-2xl border border-white/10 p-6 shadow-2xl flex flex-col justify-between">
+          <div>
+            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6 border-b border-white/5 pb-2 font-sans">Memory (RAM) Allocation</h4>
+            <div className="flex items-end gap-4 mb-4">
+              <div className="text-5xl font-black text-white">{stats?.memPercent}%</div>
+              <div className="text-xs text-slate-500 pb-1">Đang dùng {stats?.usedMem} GB / {stats?.totalMem} GB</div>
+            </div>
+            {/* Progress bar */}
+            <div className="w-full bg-white/5 rounded-full h-4 mt-6 overflow-hidden border border-white/10">
+              <div 
+                className={`h-full rounded-full transition-all duration-500 ${stats?.memPercent > 80 ? 'bg-red-500' : stats?.memPercent > 60 ? 'bg-amber-500' : 'bg-purple-500'}`}
+                style={{ width: `${stats?.memPercent}%` }}
+              ></div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4 mt-6 border-t border-white/5 pt-4">
+            <div>
+              <p className="text-[10px] text-slate-500 uppercase tracking-widest">Hệ điều hành</p>
+              <p className="text-sm text-white font-bold">{stats?.platform}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-slate-500 uppercase tracking-widest">Uptime</p>
+              <p className="text-sm text-cyan-400 font-bold">{Math.floor(stats?.uptime / 3600)} giờ {Math.floor((stats?.uptime % 3600) / 60)} phút</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
