@@ -193,7 +193,7 @@ const FooterContent = () => {
   );
 };
 
-const Footer = () => {
+export const Footer = () => {
   return (
     <Suspense fallback={<div className="bg-[#f4fbff] py-10 text-center text-xs text-blue-200/30">Đang tải chân trang...</div>}>
       <FooterContent />
